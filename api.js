@@ -4,6 +4,7 @@ const supabaseUrl = String(supabaseConfig.url || "").replace(/\/+$/, "");
 const supabasePublishableKey = String(supabaseConfig.publishableKey || "");
 let supabaseSession = null;
 let refreshRequest = null;
+const sessionStorageKey = "unison.auth.session";
 
 function isSupabaseConfigured() {
 	return Boolean(supabaseUrl && supabasePublishableKey);
@@ -12,6 +13,7 @@ function isSupabaseConfigured() {
 function setSession(session) {
 	if (!session?.access_token) {
 		supabaseSession = null;
+		try { window.sessionStorage.removeItem(sessionStorageKey); } catch { /* Storage may be unavailable in private browsing. */ }
 		return null;
 	}
 
@@ -19,8 +21,20 @@ function setSession(session) {
 		...session,
 		expires_at: session.expires_at || Math.floor(Date.now() / 1000) + (session.expires_in || 3600)
 	};
+	try { window.sessionStorage.setItem(sessionStorageKey, JSON.stringify(supabaseSession)); } catch { /* Keep the session in memory when storage is unavailable. */ }
 	return supabaseSession;
 }
+
+function restoreSession() {
+	try {
+		const savedSession = JSON.parse(window.sessionStorage.getItem(sessionStorageKey) || "null");
+		if (savedSession?.access_token && savedSession?.user) supabaseSession = savedSession;
+	} catch {
+		try { window.sessionStorage.removeItem(sessionStorageKey); } catch { /* Storage may be unavailable. */ }
+	}
+}
+
+restoreSession();
 
 async function readResponse(response) {
 	const text = await response.text();
@@ -129,7 +143,7 @@ function postSelect() {
 	].join(",");
 }
 
-// 02. Supabase Auth helpers. Sessions stay in memory and are not written to browser storage.
+// 02. Supabase Auth helpers. Sessions persist for this browser tab and survive page reloads.
 window.UnisonAuth = Object.freeze({
 	isConfigured: isSupabaseConfigured,
 	getUser() {
@@ -157,7 +171,7 @@ window.UnisonAuth = Object.freeze({
 		try {
 			await authRequest("logout", {}, supabaseSession.access_token);
 		} finally {
-			supabaseSession = null;
+			setSession(null);
 		}
 	}
 });

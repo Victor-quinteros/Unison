@@ -340,11 +340,16 @@
 	}
 
 	renderFeed();
-	updateAccount(window.UnisonAuth.getUser());
+	const restoredUser = window.UnisonAuth.getUser();
+	updateAccount(restoredUser);
 	if (window.UnisonApi.isConfigured()) {
 		refreshSupabaseFeed().catch((error) => showToast(error.message));
 		refreshStories().catch((error) => showToast(error.message));
 		refreshPeople().catch((error) => showToast(error.message));
+		if (restoredUser) {
+			loadMyProfile().catch((error) => showToast(error.message));
+			refreshGroupMemberships().catch((error) => showToast(error.message));
+		}
 	}
 
 	function applyFilters() {
