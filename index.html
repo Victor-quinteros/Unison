@@ -1,6 +1,7 @@
 <!doctype html>
 <html lang="en">
 <head>
+	<!-- 01. Document setup -->
 	<meta charset="utf-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<meta name="theme-color" content="#f5f7fb">
@@ -11,6 +12,7 @@
 	<link rel="stylesheet" href="style.css?v=5fcce60">
 </head>
 <body>
+	<!-- 02. Global navigation -->
 	<header class="site-header">
 		<div class="header-inner">
 			<a class="brand" href="#home"><span class="brand-mark" aria-hidden="true"></span>unison</a>
@@ -24,6 +26,7 @@
 			<button class="header-account" type="button"><img class="avatar" src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&q=80" alt=""><span>Victor Quinteros</span><span class="chevron" aria-hidden="true">⌄</span></button>
 		</div>
 	</header>
+	<!-- 03. Main application layout -->
 	<div class="app-shell">
 		<aside class="sidebar" aria-label="Main navigation">
 			<nav class="nav-list">
@@ -70,6 +73,7 @@
 			</div>
 		</aside>
 
+		<!-- 04. Home feed and Townsquare -->
 		<main id="home">
 			<div class="page-heading">
 				<div><p class="eyebrow" id="today-label">YOUR PEOPLE, YOUR PACE</p><h1 id="view-title">Home</h1><p class="page-subtitle">Good things happen when we find each other.</p></div>
@@ -99,39 +103,29 @@
 				<span class="sort-label">Fresh from your circle</span>
 			</div>
 
-			<section id="feed" aria-label="Your feed">
-				<article class="post" data-author="maya" data-search="maya chen city morning quiet little corner slowmornings">
-					<header class="post-header"><img class="avatar post-avatar" src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=100&q=80" alt=""><div class="post-identity"><div class="name-line"><span class="post-name">Maya Chen</span><span class="post-handle">@mayasees</span><span class="post-time">· 2h</span></div></div><button class="post-menu" type="button" aria-label="More post options">···</button></header>
-					<p class="post-copy">Found a quiet little corner of the city this morning. Hope you find a moment for yourself today, too. <span class="tag">#slowmornings</span></p>
-					<img class="post-image" src="https://images.unsplash.com/photo-1470252649378-9c29740c9fa8?auto=format&fit=crop&w=1100&q=85" alt="Warm morning light over a peaceful landscape" loading="lazy">
-					<div class="post-actions"><button class="action" type="button" data-action="like" aria-pressed="false"><span class="action-icon">♡</span><span data-count>128</span><span data-label>Like</span></button><button class="action" type="button" data-action="reply"><span>◌</span><span>18 replies</span></button><button class="action" type="button" data-action="share"><span>↗</span><span>Share</span></button><button class="action" type="button" data-action="save" aria-label="Save post" aria-pressed="false"><span>▱</span><span data-label>Save</span></button></div>
+			<section id="feed" aria-label="Your feed"></section>
+			<template id="post-template">
+				<article class="post">
+					<header class="post-header">
+						<img class="avatar post-avatar" data-field="avatar" alt="">
+						<div class="post-identity"><div class="name-line"><span class="post-name" data-field="author"></span><span class="post-handle" data-field="handle"></span><span class="post-time" data-field="time"></span></div></div>
+						<button class="post-menu" type="button" aria-label="More post options">···</button>
+					</header>
+					<div class="local-meta" data-field="local-meta"><span>⌖ Townsquare</span> · <span data-field="local-type"></span></div>
+					<p class="post-copy" data-field="text"></p>
+					<img class="post-image" data-field="image" alt="" loading="lazy">
+					<div class="post-actions">
+						<button class="action" type="button" data-action="like" aria-pressed="false"><span class="action-icon" data-field="like-icon">♡</span><span data-count>0</span><span data-label>Like</span></button>
+						<button class="action" type="button" data-action="reply"><span>◌</span><span data-field="replies"></span></button>
+						<button class="action" type="button" data-action="share"><span>↗</span><span>Share</span></button>
+						<button class="action" type="button" data-action="save" aria-label="Save post" aria-pressed="false"><span>▱</span><span data-label>Save</span></button>
+					</div>
 				</article>
-
-				<article class="post" data-author="leo" data-search="leo park cooking dumplings mom family recipe weekendcooking">
-					<header class="post-header"><img class="avatar post-avatar" src="https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=100&q=80" alt=""><div class="post-identity"><div class="name-line"><span class="post-name">Leo Park</span><span class="post-handle">@leocooks</span><span class="post-time">· 4h</span></div></div><button class="post-menu" type="button" aria-label="More post options">···</button></header>
-					<p class="post-copy">Sunday project: dumplings with my mom. She still folds them twice as fast as I do, but I am getting there. <span class="tag">#weekendcooking</span></p>
-					<img class="post-image" src="https://images.unsplash.com/photo-1563245372-f21724e3856d?auto=format&fit=crop&w=1100&q=85" alt="A home-cooked meal shared around a table" loading="lazy">
-					<div class="post-actions"><button class="action" type="button" data-action="like" aria-pressed="true"><span class="action-icon">♥</span><span data-count>46</span><span data-label>Liked</span></button><button class="action" type="button" data-action="reply"><span>◌</span><span>9 replies</span></button><button class="action" type="button" data-action="share"><span>↗</span><span>Share</span></button><button class="action" type="button" data-action="save" aria-label="Save post" aria-pressed="false"><span>▱</span><span data-label>Save</span></button></div>
-				</article>
-
-				<article class="post town-square-post" data-author="town-market" data-local="true" data-search="townsquare neighborhood farmers market local Saturday music produce">
-					<header class="post-header"><img class="avatar post-avatar" src="https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=100&q=80" alt=""><div class="post-identity"><div class="name-line"><span class="post-name">Riverside Market</span><span class="post-handle">@riversidemarket</span><span class="post-time">· 1h</span></div></div><button class="post-menu" type="button" aria-label="More post options">···</button></header>
-					<div class="local-meta"><span>⌖ Townsquare</span> · Community update</div>
-					<p class="post-copy">The Saturday market is back this weekend. Fresh produce, neighborhood makers, and live music from 9 to 1. Bring a friend. <span class="tag">#shoplocal</span></p>
-					<img class="post-image" src="https://images.unsplash.com/photo-1488459716781-31db52582fe9?auto=format&fit=crop&w=1100&q=85" alt="Fresh produce at a neighborhood farmers market" loading="lazy">
-					<div class="post-actions"><button class="action" type="button" data-action="like" aria-pressed="false"><span class="action-icon">♡</span><span data-count>32</span><span data-label>Like</span></button><button class="action" type="button" data-action="reply"><span>◌</span><span>7 replies</span></button><button class="action" type="button" data-action="share"><span>↗</span><span>Share</span></button><button class="action" type="button" data-action="save" aria-label="Save post" aria-pressed="false"><span>▱</span><span data-label>Save</span></button></div>
-				</article>
-
-				<article class="post town-square-post" data-author="jordan" data-local="true" data-search="townsquare neighborhood lost dog park help community">
-					<header class="post-header"><img class="avatar post-avatar" src="https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=100&q=80" alt=""><div class="post-identity"><div class="name-line"><span class="post-name">Jordan Lee</span><span class="post-handle">@jordanlee</span><span class="post-time">· 3h</span></div></div><button class="post-menu" type="button" aria-label="More post options">···</button></header>
-					<div class="local-meta"><span>⌖ Townsquare</span> · Neighbor post</div>
-					<p class="post-copy">A friendly reminder: the little free library by Cedar Park got a fresh restock today. I left a few kids' books and took a mystery novel. <span class="tag">#passitalong</span></p>
-					<div class="post-actions"><button class="action" type="button" data-action="like" aria-pressed="false"><span class="action-icon">♡</span><span data-count>14</span><span data-label>Like</span></button><button class="action" type="button" data-action="reply"><span>◌</span><span>3 replies</span></button><button class="action" type="button" data-action="share"><span>↗</span><span>Share</span></button><button class="action" type="button" data-action="save" aria-label="Save post" aria-pressed="false"><span>▱</span><span data-label>Save</span></button></div>
-				</article>
-			</section>
+			</template>
 			<div class="empty-state" id="empty-state"><strong>Nothing in this little corner yet.</strong>Try a different search or check back soon.</div>
 		</main>
 
+		<!-- 05. Community suggestions and contacts -->
 		<aside class="right-rail" aria-label="Community">
 			<section class="rail-panel"><h2 class="panel-title">Suggested for you <button class="text-link" type="button" data-coming-soon>See all</button></h2><div class="suggestion-list">
 				<div class="suggestion"><img src="https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=90&q=75" alt=""><div class="suggestion-copy"><strong>Nature & Adventure</strong><span>Group · 125K members</span></div><button class="join-button" type="button" data-coming-soon>Join</button></div>
@@ -168,6 +162,7 @@
 		</aside>
 	</div>
 
+	<!-- 06. Mobile navigation -->
 	<nav class="mobile-nav" aria-label="Main navigation">
 		<button class="nav-button active" type="button" data-view="home" aria-label="Home"><span class="nav-icon" aria-hidden="true">⌂</span><span class="nav-label">Home</span></button>
 		<button class="nav-button" type="button" data-view="townsquare" aria-label="Townsquare"><span class="nav-icon" aria-hidden="true">⌖</span><span class="nav-label">Town</span></button>
@@ -177,6 +172,8 @@
 	</nav>
 	<div class="toast" id="toast" role="status" aria-live="polite"></div>
 
+	<!-- 07. Application scripts -->
+	<script src="posts.js"></script>
 	<script src="script.js"></script>
 </body>
 </html>

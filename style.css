@@ -1,3 +1,4 @@
+/* 01. Theme tokens and base styles */
 :root {
 	color-scheme: light;
 	--page: #eff5fc;
@@ -51,6 +52,7 @@ body[data-theme="dim"][data-accent="blue"] { --accent: #9ba8ff; --accent-soft: #
 body[data-accent="coral"] { --accent: #fa7058; --accent-soft: #fff0ec; }
 body[data-theme="dim"][data-accent="coral"] { --accent: #ff927e; --accent-soft: #493a3c; }
 
+/* 02. Global header */
 .site-header { position: sticky; z-index: 10; top: 0; height: 52px; border-bottom: 1px solid var(--line); background: var(--surface); }
 .header-inner { display: flex; width: min(1460px, calc(100% - 32px)); height: 100%; align-items: center; gap: 25px; margin: 0 auto; }
 .site-header .brand { flex: 0 0 170px; font-size: 22px; }
@@ -66,6 +68,7 @@ body[data-theme="dim"][data-accent="coral"] { --accent: #ff927e; --accent-soft: 
 .header-account .avatar { width: 30px; height: 30px; }
 .header-account .chevron { color: var(--muted); }
 
+/* 03. Main layout and navigation */
 .app-shell {
 	display: grid;
 	grid-template-columns: 172px minmax(410px, 1fr) 220px 150px;
@@ -95,6 +98,7 @@ body[data-theme="dim"][data-accent="coral"] { --accent: #ff927e; --accent-soft: 
 .shortcut img { width: 28px; height: 28px; border-radius: 6px; object-fit: cover; }
 .shortcut span { color: var(--ink); font-size: 10px; font-weight: 600; }
 
+/* 04. Appearance controls */
 .customizer { margin-top: 0; padding: 10px; border: 1px solid var(--line); border-radius: 7px; background: var(--surface); }
 .customizer-heading { margin: 0 0 9px; font-family: var(--display); font-size: 11px; font-weight: 800; }
 .control-label { display: block; margin: 9px 0 6px; color: var(--muted); font-size: 9px; font-weight: 700; }
@@ -118,6 +122,7 @@ body[data-theme="dim"][data-accent="coral"] { --accent: #ff927e; --accent-soft: 
 .account-name, .person-name { display: block; font-size: 12px; font-weight: 700; }
 .account-handle, .person-handle { display: block; margin-top: 2px; color: var(--muted); font-size: 11px; }
 
+/* 05. Feed, stories, and post cards */
 main { min-width: 0; padding: 9px 0 60px; }
 .mobile-header, .topbar { display: none; }
 .search-wrap { position: relative; width: min(100%, 355px); }
@@ -196,6 +201,7 @@ h1 { margin-bottom: 3px; font-family: var(--display); font-size: 20px; font-weig
 .empty-state { display: none; padding: 30px 15px; border: 1px dashed var(--line); border-radius: 7px; color: var(--muted); text-align: center; }
 .empty-state strong { display: block; margin-bottom: 5px; color: var(--ink); font-family: var(--display); font-size: 16px; }
 
+/* 06. Community and contact rails */
 .right-rail { position: sticky; top: 52px; display: grid; gap: 10px; padding: 10px 0 20px; }
 .rail-panel { padding: 11px; }
 .panel-title { display: flex; align-items: center; justify-content: space-between; gap: 5px; margin: 0 0 10px; font-family: var(--display); font-size: 11px; font-weight: 800; }
@@ -244,6 +250,7 @@ h1 { margin-bottom: 3px; font-family: var(--display); font-size: 20px; font-weig
 body.compact .post { padding: 10px 14px; }
 body.compact .post-copy { margin: 8px 0; }
 
+/* 07. Responsive layouts */
 @media (max-width: 1050px) {
 	.app-shell { grid-template-columns: 170px minmax(0, 1fr) 220px; width: calc(100% - 28px); }
 	.contact-rail { display: none; }

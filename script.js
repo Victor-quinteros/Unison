@@ -1,3 +1,4 @@
+	// 01. Application state
 	const form = document.querySelector("#post-form");
 	const input = document.querySelector("#post-text");
 	const feed = document.querySelector("#feed");
@@ -19,6 +20,58 @@
 		window.clearTimeout(toastTimer);
 		toastTimer = window.setTimeout(() => toast.classList.remove("show"), 2000);
 	}
+
+	// 02. Feed rendering and filtering
+	function renderPost(postData) {
+		const template = document.querySelector("#post-template");
+		const post = template.content.firstElementChild.cloneNode(true);
+		post.dataset.author = postData.handle;
+		post.dataset.search = `${postData.author} ${postData.handle} ${postData.search || ""} ${postData.text}`.toLowerCase();
+
+		if (postData.local) {
+			post.classList.add("town-square-post");
+			post.dataset.local = "true";
+			post.querySelector('[data-field="local-type"]').textContent = postData.localType;
+		} else {
+			post.querySelector('[data-field="local-meta"]').remove();
+		}
+
+		post.querySelector('[data-field="avatar"]').src = postData.avatar;
+		post.querySelector('[data-field="author"]').textContent = postData.author;
+		post.querySelector('[data-field="handle"]').textContent = postData.handle;
+		post.querySelector('[data-field="time"]').textContent = `· ${postData.time}`;
+		const textElement = post.querySelector('[data-field="text"]');
+		postData.text.split(/(#[A-Za-z0-9_]+)/g).forEach((part) => {
+			if (part.startsWith("#")) {
+				const tag = document.createElement("span");
+				tag.className = "tag";
+				tag.textContent = part;
+				textElement.append(tag);
+			} else {
+				textElement.append(document.createTextNode(part));
+			}
+		});
+
+		if (postData.image) {
+			const image = post.querySelector('[data-field="image"]');
+			image.src = postData.image;
+			image.alt = postData.imageAlt || "";
+		} else {
+			post.querySelector('[data-field="image"]').remove();
+		}
+
+		const likeButton = post.querySelector('[data-action="like"]');
+		likeButton.setAttribute("aria-pressed", String(Boolean(postData.liked)));
+		likeButton.classList.toggle("liked", Boolean(postData.liked));
+		likeButton.querySelector("[data-count]").textContent = String(postData.likes || 0);
+		likeButton.querySelector("[data-label]").textContent = postData.liked ? "Liked" : "Like";
+		likeButton.querySelector('[data-field="like-icon"]').textContent = postData.liked ? "♥" : "♡";
+		post.querySelector('[data-field="replies"]').textContent = `${postData.replies || 0} replies`;
+		return post;
+	}
+
+	const feedPosts = window.UnisonData.posts;
+	feed.replaceChildren(...feedPosts.map(renderPost));
 
 	function applyFilters() {
 		const query = search.value.trim().toLowerCase();
@@ -51,6 +104,7 @@
 		applyFilters();
 	}
 
+	// 03. Navigation and feed controls
 	document.querySelectorAll("[data-view]").forEach((button) => button.addEventListener("click", () => setView(button.dataset.view)));
 	document.querySelectorAll("[data-coming-soon]").forEach((button) => button.addEventListener("click", () => showToast("This section is coming soon")));
 	document.querySelectorAll("[data-filter]").forEach((button) => button.addEventListener("click", () => {
@@ -83,6 +137,7 @@
 	}));
 	search.addEventListener("input", applyFilters);
 
+	// 04. Post actions and composer
 	feed.addEventListener("click", async (event) => {
 		const button = event.target.closest("button[data-action]");
 		if (!button) return;
@@ -119,29 +174,20 @@
 		const text = input.value.trim();
 		if (!text) return;
 
-		const post = document.createElement("article");
-		post.className = "post";
-		post.dataset.author = "you";
-		post.dataset.search = text.toLowerCase();
-		if (currentView === "townsquare") post.dataset.local = "true";
-		const header = document.createElement("header");
-		header.className = "post-header";
-		const avatar = document.createElement("img");
-		avatar.className = "avatar post-avatar";
-		avatar.src = "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&q=80";
-		avatar.alt = "";
-		const identity = document.createElement("div");
-		identity.className = "post-identity";
-		identity.innerHTML = '<div class="name-line"><span class="post-name">Alex Morgan</span><span class="post-handle">@alexm</span><span class="post-time">· now</span></div>';
-		header.append(avatar, identity);
-		const copy = document.createElement("p");
-		copy.className = "post-copy";
-		copy.textContent = text;
-		const actions = document.createElement("div");
-		actions.className = "post-actions";
-		actions.innerHTML = '<button class="action" type="button" data-action="like" aria-pressed="false"><span class="action-icon">♡</span><span data-count>0</span><span data-label>Like</span></button><button class="action" type="button" data-action="reply"><span>◌</span><span>Reply</span></button><button class="action" type="button" data-action="share"><span>↗</span><span>Share</span></button><button class="action" type="button" data-action="save" aria-label="Save post" aria-pressed="false"><span>▱</span><span data-label>Save</span></button>';
-		post.append(header, copy, actions);
-		feed.prepend(post);
+		const postData = {
+			author: "Alex Morgan",
+			handle: "@alexm",
+			time: "now",
+			avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&q=80",
+			text,
+			search: text,
+			likes: 0,
+			replies: 0,
+			local: currentView === "townsquare",
+			localType: "Neighbor post"
+		};
+		feedPosts.unshift(postData);
+		feed.prepend(renderPost(postData));
 		form.reset();
 		currentView = "home";
 		currentFeed = "all";
@@ -149,6 +195,7 @@
 		showToast("Shared with your circle");
 	});
 
+	// 05. Appearance preferences
 	let preferences = JSON.parse(localStorage.getItem("unison-preferences") || "{}");
 	function savePreference(key, value) {
 		preferences = { ...preferences, [key]: value };
