@@ -9,7 +9,7 @@
 	<link rel="preconnect" href="https://fonts.googleapis.com">
 	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 	<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
-	<link rel="stylesheet" href="style.css?v=post-audience-11">
+	<link rel="stylesheet" href="style.css?v=community-public-13">
 </head>
 <body>
 	<!-- 02. Global navigation -->
@@ -45,7 +45,7 @@
 				<button class="nav-button" type="button" data-coming-soon><span class="nav-icon" aria-hidden="true">◷</span><span>Memories</span></button>
 				<button class="nav-button" type="button" data-view="saved"><span class="nav-icon" aria-hidden="true">♡</span><span>Saved</span></button>
 			</nav>
-			<section>
+			<section data-demo-content>
 				<h2 class="sidebar-heading">Your shortcuts</h2>
 				<div class="shortcut-list">
 					<button class="shortcut" type="button" data-coming-soon><img src="https://images.unsplash.com/photo-1511512578047-dfb367046420?auto=format&fit=crop&w=70&q=70" alt=""><span>Tech & Gaming Hub</span></button>
@@ -83,9 +83,9 @@
 				<span class="date-pill" id="date-label"></span>
 			</div>
 			<section class="auth-gate" id="auth-gate" hidden>
-				<p class="eyebrow">YOUR COMMUNITY, TOGETHER</p>
-				<h2>Sign in to see the feed</h2>
-				<p>Posts are available to signed-in members. Create an account or sign in to join the conversation.</p>
+				<p class="eyebrow">GUEST PREVIEW</p>
+				<h2>Take a look around</h2>
+				<p>You’re viewing sample posts. Sign in or create an account to see members’ posts and join the conversation.</p>
 				<div><button class="dialog-primary" id="gate-signin" type="button">Sign in</button><button class="dialog-link" id="gate-signup" type="button">Create an account</button></div>
 			</section>
 			<section class="search-people-section" id="search-people-section" hidden aria-labelledby="search-people-heading">
@@ -111,17 +111,18 @@
 				<div class="feeling-menu" id="feeling-menu" hidden><span>Add a feeling:</span><button type="button" data-feeling="😊 Feeling happy">😊</button><button type="button" data-feeling="🎉 Celebrating">🎉</button><button type="button" data-feeling="🌱 Feeling inspired">🌱</button><button type="button" data-feeling="☕ Taking it slow">☕</button></div>
 				<input id="photo-input" type="file" accept="image/*" hidden>
 				<input id="story-input" type="file" accept="image/*" hidden>
-				<div class="composer-footer"><div class="composer-tools"><button class="composer-tool" type="button" data-attach-photo aria-label="Add a photo">▧ &nbsp;Photo</button><button class="composer-tool" type="button" data-open-feelings aria-expanded="false">☺ &nbsp;Feeling</button><label class="post-destination" id="post-destination">Post to<select id="post-scope" aria-label="Post destination"><option value="home">My circle</option><option value="community">Community feed</option></select></label><label class="post-destination">Audience<select id="post-visibility" aria-label="Post audience"><option value="public">Signed-in members</option><option value="private">Only me</option></select></label></div><button class="post-button" type="submit">Share post</button></div>
+				<div class="composer-footer"><div class="composer-tools"><button class="composer-tool" type="button" data-attach-photo aria-label="Add a photo">▧ &nbsp;Photo</button><button class="composer-tool" type="button" data-open-feelings aria-expanded="false">☺ &nbsp;Feeling</button><label class="post-destination" id="post-destination">Post to<select id="post-scope" aria-label="Post destination"><option value="home">My circle</option><option value="community">Community feed</option></select></label><label class="post-destination">Audience<select id="post-visibility" aria-label="Post audience" aria-describedby="post-audience-help"><option value="public">Public</option><option value="private">Private (only me)</option></select></label></div><button class="post-button" type="submit">Share post</button></div>
+				<p class="post-audience-help" id="post-audience-help">Public Home posts are visible to signed-in members; public Community posts are visible to everyone.</p>
 				<p class="post-status" id="post-status" role="status" aria-live="polite" hidden></p>
 			</form>
 
 			<div class="stories" aria-label="Stories">
 				<button class="story add" type="button" data-create-story><span class="story-ring" aria-hidden="true">＋</span><span>Create story</span></button>
-				<button class="story" type="button" data-story><span class="story-ring"><img src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=100&q=80" alt=""></span><span>Maya Lopez</span></button>
-				<button class="story" type="button" data-story><span class="story-ring"><img src="https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=100&q=80" alt=""></span><span>Daniel Ruiz</span></button>
-				<button class="story" type="button" data-story><span class="story-ring"><img src="https://images.unsplash.com/photo-1531123897727-8f129e1688ce?auto=format&fit=crop&w=100&q=80" alt=""></span><span>Sofia Martinez</span></button>
-				<button class="story" type="button" data-story><span class="story-ring"><img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&q=80&sat=-80" alt=""></span><span>Carlos Vega</span></button>
-				<button class="story" type="button" data-story><span class="story-ring"><img src="https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=100&q=80" alt=""></span><span>Travel Life</span></button>
+				<button class="story" type="button" data-story data-demo-story><span class="story-ring"><img src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=100&q=80" alt=""></span><span>Maya Lopez</span></button>
+				<button class="story" type="button" data-story data-demo-story><span class="story-ring"><img src="https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=100&q=80" alt=""></span><span>Daniel Ruiz</span></button>
+				<button class="story" type="button" data-story data-demo-story><span class="story-ring"><img src="https://images.unsplash.com/photo-1531123897727-8f129e1688ce?auto=format&fit=crop&w=100&q=80" alt=""></span><span>Sofia Martinez</span></button>
+				<button class="story" type="button" data-story data-demo-story><span class="story-ring"><img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&q=80&sat=-80" alt=""></span><span>Carlos Vega</span></button>
+				<button class="story" type="button" data-story data-demo-story><span class="story-ring"><img src="https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=100&q=80" alt=""></span><span>Travel Life</span></button>
 			</div>
 			<section class="town-square-intro" id="town-square-intro" hidden>
 				<div><p class="town-square-label">YOUR NEIGHBORHOOD, IN THE KNOW</p><p class="town-square-copy">Local conversations, useful finds, and small things happening nearby.</p></div>
@@ -245,7 +246,7 @@
 	<!-- 07. Application scripts -->
 	<script src="supabase-config.js"></script>
 	<script src="posts.js"></script>
-	<script src="api.js?v=post-audience-11"></script>
-	<script src="script.js?v=post-audience-11"></script>
+	<script src="api.js?v=community-public-13"></script>
+	<script src="script.js?v=community-public-13"></script>
 </body>
 </html>

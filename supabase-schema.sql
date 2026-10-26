@@ -189,6 +189,7 @@ grant usage on schema public to anon, authenticated;
 grant select on public.profiles, public.groups, public.groups_memberships, public.follows to anon, authenticated;
 grant select on public.posts, public.post_likes, public.post_comments, public.stories to authenticated;
 revoke select on public.posts, public.post_likes, public.post_comments, public.stories from anon, public;
+grant select on public.posts to anon;
 grant select, insert, update, delete on public.profiles, public.posts, public.post_likes, public.post_comments, public.saved_posts, public.follows, public.groups_memberships, public.stories to authenticated;
 drop policy if exists "Profiles are readable by everyone" on public.profiles;
 create policy "Profiles are readable by everyone"
@@ -210,6 +211,10 @@ drop policy if exists "Members read public posts and owners read private posts" 
 create policy "Members read public posts and owners read private posts"
 	on public.posts for select to authenticated
 	using ((select auth.uid()) is not null and (visibility = 'public' or user_id = (select auth.uid())));
+drop policy if exists "Visitors read public community posts" on public.posts;
+create policy "Visitors read public community posts"
+	on public.posts for select to anon
+	using (scope = 'community' and visibility = 'public');
 drop policy if exists "Users create their own posts" on public.posts;
 create policy "Users create their own posts"
 	on public.posts for insert to authenticated
@@ -323,6 +328,19 @@ drop policy if exists "Members read images attached to visible posts" on storage
 create policy "Signed-in members can read post images"
 	on storage.objects for select to authenticated
 	using (bucket_id = 'post-media' and (owner_id = (select auth.uid())::text or exists (select 1 from public.posts where posts.image_path = storage.objects.name)));
+drop policy if exists "Visitors read public community post images" on storage.objects;
+create policy "Visitors read public community post images"
+	on storage.objects for select to anon
+	using (
+		bucket_id = 'post-media'
+		and storage.allow_any_operation(array['object.get_authenticated_info', 'object.get_authenticated'])
+		and exists (
+			select 1 from public.posts
+			where posts.image_path = storage.objects.name
+				and posts.scope = 'community'
+				and posts.visibility = 'public'
+		)
+	);
 drop policy if exists "Signed-in users upload their own post images" on storage.objects;
 create policy "Signed-in users upload their own post images"
 	on storage.objects for insert to authenticated

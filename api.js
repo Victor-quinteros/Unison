@@ -119,8 +119,9 @@ async function privateMediaUrl(path) {
 	if (!path) return "";
 	if (privateMediaCache.has(path)) return privateMediaCache.get(path);
 	const mediaRequest = (async () => {
-		const session = await requireSession();
-		const headers = new Headers({ apikey: supabasePublishableKey, Authorization: `Bearer ${session.access_token}` });
+		const session = supabaseSession ? await requireSession() : null;
+		const headers = new Headers({ apikey: supabasePublishableKey });
+		if (session) headers.set("Authorization", `Bearer ${session.access_token}`);
 		const response = await fetch(configuredUrl(`storage/v1/object/authenticated/post-media/${path}`), { headers });
 		if (!response.ok) await readResponse(response);
 		return URL.createObjectURL(await response.blob());
@@ -172,11 +173,12 @@ async function mapPost(row) {
 }
 
 function postSelect() {
-	return [
+	const fields = [
 		"id", "user_id", "body", "scope", "visibility", "image_path", "created_at",
-		"profiles!posts_user_id_fkey(display_name,handle,avatar_url)", "post_likes(user_id)", "post_comments(id)",
-		...(supabaseSession ? ["saved_posts(user_id)"] : [])
-	].join(",");
+		"profiles!posts_user_id_fkey(display_name,handle,avatar_url)"
+	];
+	if (supabaseSession) fields.push("post_likes(user_id)", "post_comments(id)", "saved_posts(user_id)");
+	return fields.join(",");
 }
 
 // 02. Supabase Auth helpers. Sessions persist for this browser tab and survive page reloads.
@@ -216,7 +218,10 @@ window.UnisonAuth = Object.freeze({
 window.UnisonApi = Object.freeze({
 	isConfigured: isSupabaseConfigured,
 	async listPosts({ scope = "home", search = "", profileUserId = "" } = {}) {
-		const session = await requireSession();
+		const session = supabaseSession ? await requireSession() : null;
+		if (!session && scope !== "community" && !(scope === "profile" && profileUserId)) {
+			throw new Error("Sign in to view these posts.");
+		}
 		const params = new URLSearchParams({ select: postSelect(), order: "created_at.desc" });
 		if (scope === "townsquare") params.set("scope", "eq.townsquare");
 		if (scope === "community") params.set("scope", "eq.community");
@@ -238,7 +243,7 @@ window.UnisonApi = Object.freeze({
 		}
 		const safeSearch = String(search).replace(/[(),%_*]/g, " ").trim();
 		if (safeSearch) params.set("body", `ilike.*${safeSearch}*`);
-		const rows = await supabaseRequest(`posts?${params}`, { auth: true });
+		const rows = await supabaseRequest(`posts?${params}`, { auth: Boolean(session) });
 		return Promise.all(rows.map(mapPost));
 	},
 	async createPost({ text, scope = "home", visibility = "public", imageFile = null }) {
@@ -334,11 +339,12 @@ window.UnisonApi = Object.freeze({
 		return { ...rows[0], avatar_url: await profileAvatarUrl(rows[0].avatar_url) };
 	},
 	async getPublicProfile(userId) {
-		await requireSession();
+		const auth = Boolean(supabaseSession);
+		if (auth) await requireSession();
 		const params = new URLSearchParams({ select: "id,handle,display_name,avatar_url,bio", id: `eq.${userId}`, limit: "1" });
-		const rows = await supabaseRequest(`profiles?${params}`, { auth: true });
+		const rows = await supabaseRequest(`profiles?${params}`, { auth });
 		if (!rows[0]) return null;
-		return { ...rows[0], avatar_url: await profileAvatarUrl(rows[0].avatar_url) };
+		return { ...rows[0], avatar_url: await profileAvatarUrl(rows[0].avatar_url).catch(() => "") };
 	},
 	async updateMyProfile({ handle, displayName, bio, avatarUrl }) {
 		const session = await requireSession();

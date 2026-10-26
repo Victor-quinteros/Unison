@@ -1,5 +1,5 @@
--- Run in the Supabase SQL Editor. Existing posts become visible to signed-in
--- members by default; new posts can be public to members or private to owner.
+-- Run in the Supabase SQL Editor. Existing posts remain public to signed-in
+-- members. Only public posts placed in the Community feed are visible to guests.
 
 alter table public.posts drop constraint if exists posts_scope_check;
 alter table public.posts
@@ -11,6 +11,7 @@ alter table public.posts
 
 grant select on public.posts, public.post_likes, public.post_comments, public.stories to authenticated;
 revoke select on public.posts, public.post_likes, public.post_comments, public.stories from anon, public;
+grant select on public.posts to anon;
 
 drop policy if exists "Posts are readable by everyone" on public.posts;
 drop policy if exists "Posts are readable by signed-in members" on public.posts;
@@ -18,6 +19,10 @@ drop policy if exists "Members read public posts and owners read private posts" 
 create policy "Members read public posts and owners read private posts"
 	on public.posts for select to authenticated
 	using ((select auth.uid()) is not null and (visibility = 'public' or user_id = (select auth.uid())));
+drop policy if exists "Visitors read public community posts" on public.posts;
+create policy "Visitors read public community posts"
+	on public.posts for select to anon
+	using (scope = 'community' and visibility = 'public');
 
 drop policy if exists "Likes are readable by everyone" on public.post_likes;
 drop policy if exists "Likes are readable by signed-in members" on public.post_likes;
@@ -60,6 +65,19 @@ create policy "Signed-in members can read post images"
 		and (
 			owner_id = (select auth.uid())::text
 			or exists (select 1 from public.posts where posts.image_path = storage.objects.name)
+		)
+	);
+drop policy if exists "Visitors read public community post images" on storage.objects;
+create policy "Visitors read public community post images"
+	on storage.objects for select to anon
+	using (
+		bucket_id = 'post-media'
+		and storage.allow_any_operation(array['object.get_authenticated_info', 'object.get_authenticated'])
+		and exists (
+			select 1 from public.posts
+			where posts.image_path = storage.objects.name
+				and posts.scope = 'community'
+				and posts.visibility = 'public'
 		)
 	);
 
