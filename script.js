@@ -17,6 +17,7 @@
 	const authDialog = document.querySelector("#auth-dialog");
 	const commentsDialog = document.querySelector("#comments-dialog");
 	const storyDialog = document.querySelector("#story-dialog");
+	const profileDialog = document.querySelector("#profile-dialog");
 	let currentView = "home";
 	let currentFeed = "all";
 	let toastTimer;
@@ -24,6 +25,7 @@
 	let selectedPhoto = null;
 	let activeCommentPost = null;
 	let feedRequestId = 0;
+	let profileRequestId = 0;
 	let currentProfile = null;
 	const fallbackAvatar = "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&q=80";
 	let appearance = { accent: "coral", theme: "light", compact: false };
@@ -94,7 +96,10 @@
 			post.querySelector('[data-field="local-meta"]').remove();
 		}
 
-		post.querySelector('[data-field="avatar"]').src = postData.avatar;
+		post.querySelector('[data-field="avatar"]').src = postData.avatar || fallbackAvatar;
+		const profileLink = post.querySelector("[data-profile-link]");
+		profileLink.dataset.profileId = postData.userId || "";
+		profileLink.dataset.profileHandle = postData.handle || "";
 		post.querySelector('[data-field="author"]').textContent = postData.author;
 		post.querySelector('[data-field="handle"]').textContent = postData.handle;
 		post.querySelector('[data-field="time"]').textContent = `· ${postData.time}`;
@@ -165,6 +170,8 @@
 		people.forEach((person) => {
 			const row = document.createElement("div");
 			row.className = "person";
+			row.dataset.profileId = person.id;
+			row.dataset.profileHandle = person.handle || "";
 			const avatar = document.createElement("img");
 			avatar.className = "avatar";
 			avatar.src = person.avatar_url || fallbackAvatar;
@@ -177,7 +184,13 @@
 			const handle = document.createElement("span");
 			handle.className = "person-handle";
 			handle.textContent = `@${person.handle}`;
-			details.append(name, handle);
+			const profileLink = document.createElement("button");
+			profileLink.className = "person-profile-link";
+			profileLink.type = "button";
+			profileLink.dataset.profileId = person.id;
+			profileLink.dataset.profileHandle = person.handle || "";
+			profileLink.append(name, handle);
+			details.append(profileLink);
 			if (person.bio) {
 				const bio = document.createElement("span");
 				bio.className = "person-bio";
@@ -200,6 +213,79 @@
 		if (!window.UnisonApi.isConfigured() || !window.UnisonAuth.getUser()) return;
 		const followedIds = new Set(await window.UnisonApi.listFollowedIds());
 		document.querySelectorAll("[data-follow-id]").forEach((button) => setFollowButton(button, followedIds.has(button.dataset.followId)));
+	}
+
+	async function openPublicProfile(userId, rawHandle = "") {
+		const requestId = ++profileRequestId;
+		const cleanHandle = String(rawHandle).replace(/^@/, "");
+		const name = document.querySelector("#public-profile-name");
+		const handle = document.querySelector("#public-profile-handle");
+		const bio = document.querySelector("#public-profile-bio");
+		const avatar = document.querySelector("#public-profile-avatar");
+		const posts = document.querySelector("#public-profile-posts");
+		const follow = document.querySelector("#public-profile-follow");
+		name.textContent = "Loading profile…";
+		handle.textContent = cleanHandle ? `@${cleanHandle}` : "";
+		bio.textContent = "";
+		avatar.src = fallbackAvatar;
+		posts.replaceChildren(Object.assign(document.createElement("p"), { className: "profile-posts-empty", textContent: "Loading posts…" }));
+		follow.hidden = true;
+		if (!profileDialog.open) profileDialog.showModal();
+		try {
+			let profile;
+			let profilePosts;
+			if (window.UnisonApi.isConfigured() && userId) {
+				[profile, profilePosts] = await Promise.all([
+					window.UnisonApi.getPublicProfile(userId),
+					window.UnisonApi.listPosts({ scope: "profile", profileUserId: userId })
+				]);
+				if (!profile) throw new Error("This profile could not be found.");
+			} else {
+				const matchingPosts = feedPosts.filter((post) => post.handle?.replace(/^@/, "").toLowerCase() === cleanHandle.toLowerCase());
+				const post = matchingPosts[0];
+				profile = { display_name: post?.author || cleanHandle || "Unison member", handle: cleanHandle, avatar_url: post?.avatar || "", bio: "" };
+				profilePosts = matchingPosts;
+			}
+			if (requestId !== profileRequestId) return;
+			name.textContent = profile.display_name || "Unison member";
+			handle.textContent = profile.handle ? `@${profile.handle}` : "@member";
+			bio.textContent = profile.bio || "";
+			avatar.src = profile.avatar_url || fallbackAvatar;
+			if (profile.id && profile.id !== window.UnisonAuth.getUser()?.id) {
+				follow.hidden = false;
+				follow.dataset.followId = profile.id;
+				if (window.UnisonAuth.getUser()) {
+					const followed = new Set(await window.UnisonApi.listFollowedIds());
+					if (requestId !== profileRequestId) return;
+					setFollowButton(follow, followed.has(profile.id));
+				} else setFollowButton(follow, false);
+			}
+			if (requestId !== profileRequestId) return;
+			avatar.alt = `${profile.display_name || "Member"}'s profile picture`;
+			if (!profilePosts.length) {
+				posts.replaceChildren(Object.assign(document.createElement("p"), { className: "profile-posts-empty", textContent: "No posts yet." }));
+				return;
+			}
+			posts.replaceChildren(...profilePosts.map((post) => {
+				const card = document.createElement("article");
+				card.className = "profile-post-card";
+				const copy = document.createElement("p");
+				copy.textContent = post.text || "";
+				card.append(copy);
+				if (post.image) {
+					const image = document.createElement("img");
+					image.src = post.image;
+					image.alt = post.imageAlt || "Post attachment";
+					image.loading = "lazy";
+					card.append(image);
+				}
+				return card;
+			}));
+		} catch (error) {
+			if (requestId !== profileRequestId) return;
+			name.textContent = "Profile unavailable";
+			posts.replaceChildren(Object.assign(document.createElement("p"), { className: "profile-posts-empty", textContent: error.message }));
+		}
 	}
 
 	function addStoryCard({ image, name, avatar = "" }, { prepend = false } = {}) {
@@ -551,8 +637,17 @@
 		document.querySelector(".composer").scrollIntoView({ behavior: "smooth", block: "center" });
 	}));
 	document.querySelector("#people-list").addEventListener("click", async (event) => {
+		const profileLink = event.target.closest(".person-profile-link");
+		if (profileLink) {
+			openPublicProfile(profileLink.dataset.profileId, profileLink.dataset.profileHandle);
+			return;
+		}
 		const button = event.target.closest("button.follow");
-		if (!button) return;
+		if (!button) {
+			const person = event.target.closest(".person");
+			if (person) openPublicProfile(person.dataset.profileId, person.dataset.profileHandle || person.querySelector(".person-handle")?.textContent || "");
+			return;
+		}
 		const isFollowing = button.getAttribute("aria-pressed") === "true";
 		if (window.UnisonApi.isConfigured()) {
 			if (!requireSignedIn()) return;
@@ -569,6 +664,18 @@
 		}
 		setFollowButton(button, !isFollowing);
 		applyFilters();
+	});
+	document.querySelector("#public-profile-follow").addEventListener("click", async (event) => {
+		const button = event.currentTarget;
+		if (!requireSignedIn()) return;
+		const followingProfile = button.getAttribute("aria-pressed") === "true";
+		try {
+			await window.UnisonApi.toggleFollow(button.dataset.followId, !followingProfile);
+			setFollowButton(button, !followingProfile);
+			await refreshPeople();
+		} catch (error) {
+			showToast(error.message);
+		}
 	});
 	document.querySelectorAll("[data-topic]").forEach((button) => button.addEventListener("click", () => {
 		search.value = button.dataset.topic;
@@ -626,6 +733,11 @@
 
 	// 04. Post actions and composer
 	feed.addEventListener("click", async (event) => {
+		const profileLink = event.target.closest("[data-profile-link]");
+		if (profileLink) {
+			await openPublicProfile(profileLink.dataset.profileId, profileLink.dataset.profileHandle);
+			return;
+		}
 		const button = event.target.closest("button[data-action]");
 		if (!button) return;
 		const post = button.closest(".post");

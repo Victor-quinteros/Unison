@@ -9,7 +9,7 @@
 	<link rel="preconnect" href="https://fonts.googleapis.com">
 	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 	<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
-	<link rel="stylesheet" href="style.css?v=profile-editor-1">
+	<link rel="stylesheet" href="style.css?v=profile-polish-1">
 </head>
 <body>
 	<!-- 02. Global navigation -->
@@ -112,7 +112,7 @@
 				<article class="post">
 					<header class="post-header">
 						<img class="avatar post-avatar" data-field="avatar" alt="">
-						<div class="post-identity"><div class="name-line"><span class="post-name" data-field="author"></span><span class="post-handle" data-field="handle"></span><span class="post-time" data-field="time"></span></div></div>
+						<div class="post-identity"><div class="name-line"><button class="post-profile-link" type="button" data-profile-link><span class="post-name" data-field="author"></span><span class="post-handle" data-field="handle"></span></button><span class="post-time" data-field="time"></span></div></div>
 						<button class="post-menu" type="button" data-action="menu" aria-label="More post options">···</button>
 					</header>
 					<div class="local-meta" data-field="local-meta"><span>⌖ Townsquare</span> · <span data-field="local-type"></span></div>
@@ -208,10 +208,22 @@
 		<div class="dialog-content"><button class="dialog-close" type="button" data-close-dialog aria-label="Close">×</button><p class="dialog-eyebrow">CONVERSATION</p><h2 id="comments-title">Replies</h2><div id="comments-list" class="comments-list"></div><form id="comment-form" class="comment-form"><input id="comment-text" type="text" maxlength="1000" placeholder="Write a reply..." aria-label="Write a reply" required><button class="dialog-primary" type="submit">Reply</button></form></div>
 	</dialog>
 
+	<dialog class="app-dialog profile-dialog" id="profile-dialog" aria-labelledby="public-profile-name">
+		<div class="dialog-content">
+			<button class="dialog-close" type="button" data-close-dialog aria-label="Close">×</button>
+			<p class="dialog-eyebrow">UNISON MEMBER</p>
+			<div class="public-profile-header"><img class="avatar public-profile-avatar" id="public-profile-avatar" alt=""><div><h2 id="public-profile-name">Member profile</h2><p class="profile-handle" id="public-profile-handle"></p></div></div>
+			<p class="public-profile-bio" id="public-profile-bio"></p>
+			<button class="follow profile-follow" id="public-profile-follow" type="button" hidden>Follow</button>
+			<h3 class="profile-posts-heading">Posts</h3>
+			<div class="profile-posts" id="public-profile-posts"></div>
+		</div>
+	</dialog>
+
 	<!-- 07. Application scripts -->
 	<script src="supabase-config.js"></script>
 	<script src="posts.js"></script>
-	<script src="api.js"></script>
-	<script src="script.js?v=signin-upgrade-1"></script>
+	<script src="api.js?v=profile-polish-1"></script>
+	<script src="script.js?v=profile-polish-1"></script>
 </body>
 </html>

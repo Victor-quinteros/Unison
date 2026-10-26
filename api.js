@@ -103,6 +103,7 @@ function mapPost(row) {
 		: imagePath ? `${supabaseUrl}/storage/v1/object/public/post-media/${imagePath}` : "";
 	return {
 		id: row.id,
+		userId: row.user_id,
 		author: profile.display_name || "Unison member",
 		handle: profile.handle ? `@${profile.handle}` : "@member",
 		time: new Intl.RelativeTimeFormat("en", { numeric: "auto" }).format(-Math.max(1, Math.floor((Date.now() - new Date(row.created_at).getTime()) / 3600000)), "hour"),
@@ -164,10 +165,11 @@ window.UnisonAuth = Object.freeze({
 // 03. Supabase data and storage endpoints
 window.UnisonApi = Object.freeze({
 	isConfigured: isSupabaseConfigured,
-	async listPosts({ scope = "home", search = "" } = {}) {
+	async listPosts({ scope = "home", search = "", profileUserId = "" } = {}) {
 		const params = new URLSearchParams({ select: postSelect(), order: "created_at.desc" });
 		if (scope === "townsquare") params.set("scope", "eq.townsquare");
 		if (scope === "home") params.set("scope", "in.(home,townsquare)");
+		if (profileUserId) params.set("user_id", `eq.${profileUserId}`);
 		if (scope === "following" || scope === "saved") {
 			const session = await requireSession();
 			if (scope === "following") {
@@ -247,6 +249,11 @@ window.UnisonApi = Object.freeze({
 		const session = await requireSession();
 		const params = new URLSearchParams({ select: "id,handle,display_name,avatar_url,bio", id: `eq.${session.user.id}`, limit: "1" });
 		const rows = await supabaseRequest(`profiles?${params}`, { auth: true });
+		return rows[0] || null;
+	},
+	async getPublicProfile(userId) {
+		const params = new URLSearchParams({ select: "id,handle,display_name,avatar_url,bio", id: `eq.${userId}`, limit: "1" });
+		const rows = await supabaseRequest(`profiles?${params}`);
 		return rows[0] || null;
 	},
 	async updateMyProfile({ handle, displayName, bio, avatarUrl }) {
