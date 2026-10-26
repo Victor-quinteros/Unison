@@ -3,6 +3,7 @@
 	const input = document.querySelector("#post-text");
 	const feed = document.querySelector("#feed");
 	const search = document.querySelector("#search");
+	const searchForm = document.querySelector("#search-form");
 	const emptyState = document.querySelector("#empty-state");
 	const viewTitle = document.querySelector("#view-title");
 	const pageSubtitle = document.querySelector(".page-subtitle");
@@ -20,12 +21,15 @@
 	const profileDialog = document.querySelector("#profile-dialog");
 	let currentView = "home";
 	let currentFeed = "all";
+	let lastRouteHash = "";
 	let toastTimer;
 	let signUpMode = false;
 	let selectedPhoto = null;
 	let activeCommentPost = null;
 	let feedRequestId = 0;
 	let profileRequestId = 0;
+	let searchPeopleRequestId = 0;
+	let searchGroupsRequestId = 0;
 	let currentProfile = null;
 	const fallbackAvatar = "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&q=80";
 	let appearance = { accent: "coral", theme: "light", compact: false };
@@ -212,6 +216,85 @@
 		await refreshFollowState();
 	}
 
+	async function refreshSearchPeople(query) {
+		const requestId = ++searchPeopleRequestId;
+		const section = document.querySelector("#search-people-section");
+		const list = document.querySelector("#search-people-list");
+		let people;
+		if (window.UnisonApi.isConfigured()) {
+			people = await window.UnisonApi.searchPeople(query);
+		} else {
+			const seen = new Set();
+			people = feedPosts.filter((post) => {
+				const key = (post.handle || "").toLowerCase();
+				if (!key || seen.has(key) || !`${post.author} ${post.handle}`.toLowerCase().includes(query.toLowerCase())) return false;
+				seen.add(key);
+				return true;
+			}).map((post) => ({ id: post.userId || "", handle: post.handle?.replace(/^@/, "") || "member", display_name: post.author, avatar_url: post.avatar, bio: "" }));
+		}
+		if (requestId !== searchPeopleRequestId) return;
+		list.replaceChildren(...people.map((person) => {
+			const button = document.createElement("button");
+			button.className = "search-person-profile";
+			button.type = "button";
+			button.dataset.profileId = person.id || "";
+			button.dataset.profileHandle = person.handle || "";
+			const avatar = document.createElement("img");
+			avatar.className = "avatar";
+			avatar.src = person.avatar_url || fallbackAvatar;
+			avatar.alt = "";
+			const details = document.createElement("span");
+			details.className = "search-person-details";
+			const name = document.createElement("strong");
+			name.textContent = person.display_name || person.handle || "Unison member";
+			const handle = document.createElement("span");
+			handle.className = "person-handle";
+			handle.textContent = person.handle ? `@${person.handle}` : "@member";
+			details.append(name, handle);
+			button.append(avatar, details);
+			if (person.bio) {
+				const bio = document.createElement("span");
+				bio.className = "search-person-bio";
+				bio.textContent = person.bio;
+				button.append(bio);
+			}
+			return button;
+		}));
+		section.hidden = !people.length;
+	}
+
+	async function refreshSearchGroups(query) {
+		const requestId = ++searchGroupsRequestId;
+		const section = document.querySelector("#search-groups-section");
+		const list = document.querySelector("#search-groups-list");
+		let groups;
+		if (window.UnisonApi.isConfigured()) {
+			groups = await window.UnisonApi.searchGroups(query);
+		} else {
+			groups = [...document.querySelectorAll(".right-rail [data-group-id]")]
+				.filter((button) => button.closest(".suggestion")?.textContent.toLowerCase().includes(query.toLowerCase()))
+				.map((button) => ({ id: button.dataset.groupId, name: button.closest(".suggestion").querySelector("strong")?.textContent || "Group", description: "Join the conversation." }));
+		}
+		if (requestId !== searchGroupsRequestId) return;
+		list.replaceChildren(...groups.map((group) => {
+			const card = document.createElement("article");
+			card.className = "search-group-card";
+			const name = document.createElement("strong");
+			name.textContent = group.name;
+			const description = document.createElement("p");
+			description.textContent = group.description || "A group for people with shared interests.";
+			const join = document.createElement("button");
+			join.className = "join-button";
+			join.type = "button";
+			join.dataset.groupId = group.id;
+			setGroupButton(join, demoJoinedGroups.has(group.id));
+			card.append(name, description, join);
+			return card;
+		}));
+		section.hidden = !groups.length;
+		if (window.UnisonApi.isConfigured() && window.UnisonAuth.getUser()) await refreshGroupMemberships();
+	}
+
 	async function refreshFollowState() {
 		if (!window.UnisonApi.isConfigured() || !window.UnisonAuth.getUser()) return;
 		const followedIds = new Set(await window.UnisonApi.listFollowedIds());
@@ -336,7 +419,7 @@
 		if (!window.UnisonApi.isConfigured()) return;
 		const requestId = ++feedRequestId;
 		const scope = currentView === "townsquare" ? "townsquare" : currentView === "saved" ? "saved" : currentFeed === "following" ? "following" : currentFeed === "mine" ? "mine" : "home";
-		const results = await window.UnisonApi.listPosts({ scope, search: search.value.trim() });
+		const results = await window.UnisonApi.listPosts({ scope, search: currentView === "search" ? "" : search.value.trim() });
 		if (requestId !== feedRequestId) return;
 		feedPosts = results;
 		renderFeed();
@@ -359,7 +442,7 @@
 		const query = search.value.trim().toLowerCase();
 		let visible = 0;
 		feed.querySelectorAll(".post").forEach((post) => {
-			const matchesSearch = !query || `${post.textContent} ${post.dataset.search || ""}`.toLowerCase().includes(query);
+			const matchesSearch = !query || (post.dataset.search || "").toLowerCase().includes(query);
 			const matchesView = currentView === "saved" ? post.classList.contains("saved") : currentView !== "townsquare" || post.dataset.local === "true";
 			const matchesFollowing = currentFeed !== "following" || window.UnisonApi.isConfigured() || following.has(post.dataset.author);
 			const userId = window.UnisonAuth.getUser()?.id;
@@ -371,12 +454,18 @@
 	}
 
 	function setView(view) {
+		if (currentView === "search" && view !== "search" && location.hash.startsWith("#search/")) {
+			history.pushState({ view }, "", "#home");
+			lastRouteHash = location.hash;
+		}
 		currentView = view;
 		currentFeed = view === "my-posts" ? "mine" : "all";
-		viewTitle.textContent = view === "my-posts" ? "My posts" : view === "saved" ? "Saved" : view === "explore" ? "Explore" : view === "townsquare" ? "Townsquare" : "Home";
-		pageSubtitle.textContent = view === "my-posts" ? "Everything you have shared with your circle." : view === "townsquare" ? "Your neighborhood, one conversation at a time." : "Good things happen when we find each other.";
+		viewTitle.textContent = view === "search" ? "Search results" : view === "my-posts" ? "My posts" : view === "saved" ? "Saved" : view === "explore" ? "Explore" : view === "townsquare" ? "Townsquare" : "Home";
+		pageSubtitle.textContent = view === "search" ? `Posts matching “${search.value.trim()}”` : view === "my-posts" ? "Everything you have shared with your circle." : view === "townsquare" ? "Your neighborhood, one conversation at a time." : "Good things happen when we find each other.";
+		document.querySelector("#today-label").textContent = view === "search" ? "SEARCH YOUR CIRCLE" : "YOUR PEOPLE, YOUR PACE";
+		document.querySelector("#home").classList.toggle("search-mode", view === "search");
 		townSquareIntro.hidden = view !== "townsquare";
-		feedControls.hidden = view === "townsquare";
+		feedControls.hidden = view === "townsquare" || view === "search";
 		input.placeholder = view === "townsquare" ? "Share something happening nearby..." : "What's on your mind, Alex?";
 		document.querySelectorAll("[data-view]").forEach((button) => button.classList.toggle("active", button.dataset.view === view));
 		document.querySelectorAll("[data-filter]").forEach((button) => {
@@ -386,11 +475,39 @@
 		});
 		if (view === "explore") search.focus();
 		applyFilters();
+		if (view === "search") {
+			refreshSearchPeople(search.value.trim()).catch((error) => showToast(error.message));
+			refreshSearchGroups(search.value.trim()).catch((error) => showToast(error.message));
+		}
 		if (view === "my-posts" && window.UnisonApi.isConfigured() && !window.UnisonAuth.getUser()) {
 			openAuthDialog("Sign in to see your posts.");
 			return;
 		}
 		refreshSupabaseFeed().catch((error) => showToast(error.message));
+	}
+
+	function navigateToSearch(query, pushHistory = true) {
+		const value = String(query || "").trim();
+		if (!value) return showToast("Enter a name or keyword to search.");
+		search.value = value;
+		if (pushHistory) history.pushState({ view: "search", query: value }, "", `#search/${encodeURIComponent(value)}`);
+		lastRouteHash = location.hash;
+		setView("search");
+	}
+
+	function restoreSearchRoute() {
+		if (location.hash === lastRouteHash) return;
+		lastRouteHash = location.hash;
+		if (!location.hash.startsWith("#search/")) {
+			if (currentView === "search") {
+				search.value = "";
+				setView("home");
+			}
+			return;
+		}
+		let query = "";
+		try { query = decodeURIComponent(location.hash.slice("#search/".length)); } catch { query = ""; }
+		if (query) navigateToSearch(query, false);
 	}
 
 	// 03. Navigation and feed controls
@@ -701,6 +818,31 @@
 		applyFilters();
 	}));
 	search.addEventListener("input", applyFilters);
+	searchForm.addEventListener("submit", (event) => {
+		event.preventDefault();
+		navigateToSearch(search.value);
+	});
+	document.querySelector("#search-people-list").addEventListener("click", (event) => {
+		const person = event.target.closest(".search-person-profile");
+		if (person) openPublicProfile(person.dataset.profileId, person.dataset.profileHandle);
+	});
+	document.querySelector("#search-groups-list").addEventListener("click", async (event) => {
+		const button = event.target.closest("button[data-group-id]");
+		if (!button) return;
+		const shouldJoin = button.getAttribute("aria-pressed") !== "true";
+		if (window.UnisonApi.isConfigured() && !requireSignedIn()) return;
+		try {
+			if (window.UnisonApi.isConfigured()) await window.UnisonApi.toggleGroupMembership(button.dataset.groupId, shouldJoin);
+			else if (shouldJoin) demoJoinedGroups.add(button.dataset.groupId);
+			else demoJoinedGroups.delete(button.dataset.groupId);
+			setGroupButton(button, shouldJoin);
+		} catch (error) {
+			showToast(error.message);
+		}
+	});
+	window.addEventListener("popstate", restoreSearchRoute);
+	window.addEventListener("hashchange", restoreSearchRoute);
+	restoreSearchRoute();
 
 	function postDataForElement(postElement) {
 		return feedPosts.find((post) => post.id

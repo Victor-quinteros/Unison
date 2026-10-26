@@ -124,10 +124,28 @@ body[data-theme="dim"][data-accent="coral"] { --accent: #ff927e; --accent-soft: 
 
 /* 05. Feed, stories, and post cards */
 main { min-width: 0; padding: 9px 0 60px; }
+main.search-mode .composer, main.search-mode .stories, main.search-mode .feed-controls { display: none; }
+.search-people-section { display: grid; gap: 8px; margin: 0 0 16px; }
+.search-people-section[hidden] { display: none; }
+.search-results-heading { margin: 0; font-family: var(--display); font-size: 13px; }
+.search-people-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 8px; }
+.search-person-profile { display: grid; min-width: 0; grid-template-columns: 36px minmax(0, 1fr); align-items: center; gap: 5px 9px; padding: 9px; border: 1px solid var(--line); border-radius: 7px; background: var(--surface); color: var(--ink); text-align: left; }
+.search-person-profile:hover { border-color: var(--accent); }
+.search-person-profile > .avatar { width: 36px; height: 36px; grid-row: span 2; }
+.search-person-details { display: grid; min-width: 0; gap: 3px; }
+.search-person-details strong { overflow: hidden; font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
+.search-person-bio { display: -webkit-box; grid-column: 2; overflow: hidden; color: var(--muted); font-size: 9px; line-height: 1.35; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
+.search-groups-list { display: grid; gap: 8px; }
+.search-group-card { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 4px 12px; padding: 10px; border: 1px solid var(--line); border-radius: 7px; background: var(--surface); }
+.search-group-card strong { font-size: 11px; }
+.search-group-card p { margin: 0; color: var(--muted); font-size: 10px; line-height: 1.4; }
+.search-group-card .join-button { grid-column: 2; grid-row: 1 / span 2; }
 .mobile-header, .topbar { display: none; }
 .search-wrap { position: relative; width: min(100%, 355px); }
 .search-icon { position: absolute; top: 50%; left: 13px; color: var(--muted); transform: translateY(-50%); }
 .search { width: 100%; height: 39px; padding: 0 14px 0 38px; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); color: var(--ink); font-size: 12px; }
+.search-submit { position: absolute; top: 50%; right: 5px; min-height: 29px; padding: 0 9px; border: 0; border-radius: 5px; background: var(--accent-soft); color: var(--accent); font-size: 10px; font-weight: 700; transform: translateY(-50%); }
+.search-wrap .search { padding-right: 62px; }
 .search::placeholder { color: var(--muted); }
 .top-actions { display: flex; align-items: center; gap: 8px; }
 .icon-button { display: grid; width: 36px; height: 36px; place-items: center; border: 1px solid var(--line); border-radius: 7px; background: var(--surface); color: var(--muted); font-size: 16px; }

@@ -9,14 +9,14 @@
 	<link rel="preconnect" href="https://fonts.googleapis.com">
 	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 	<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
-	<link rel="stylesheet" href="style.css?v=my-posts-nav-4">
+	<link rel="stylesheet" href="style.css?v=search-page-8">
 </head>
 <body>
 	<!-- 02. Global navigation -->
 	<header class="site-header">
 		<div class="header-inner">
 			<a class="brand" href="#home"><span class="brand-mark" aria-hidden="true"></span>unison</a>
-			<label class="search-wrap global-search"><span class="search-icon" aria-hidden="true">⌕</span><input class="search" id="search" type="search" placeholder="Search people, posts, groups, or anything..." aria-label="Search posts"></label>
+			<form class="search-wrap global-search" id="search-form" role="search"><span class="search-icon" aria-hidden="true">⌕</span><input class="search" id="search" type="search" placeholder="Search people, posts, groups, or anything..." aria-label="Search people and posts"><button class="search-submit" type="submit" aria-label="Show search results">Search</button></form>
 			<nav class="global-nav" aria-label="Quick navigation">
 				<button class="icon-button active" type="button" data-view="home" aria-label="Home">⌂</button>
 				<button class="icon-button" type="button" data-view="townsquare" aria-label="Townsquare">♧</button>
@@ -80,6 +80,14 @@
 				<div><p class="eyebrow" id="today-label">YOUR PEOPLE, YOUR PACE</p><h1 id="view-title">Home</h1><p class="page-subtitle">Good things happen when we find each other.</p></div>
 				<span class="date-pill" id="date-label"></span>
 			</div>
+			<section class="search-people-section" id="search-people-section" hidden aria-labelledby="search-people-heading">
+				<h2 class="search-results-heading" id="search-people-heading">People</h2>
+				<div class="search-people-list" id="search-people-list"></div>
+			</section>
+			<section class="search-people-section" id="search-groups-section" hidden aria-labelledby="search-groups-heading">
+				<h2 class="search-results-heading" id="search-groups-heading">Groups</h2>
+				<div class="search-groups-list" id="search-groups-list"></div>
+			</section>
 
 			<form class="composer" id="post-form">
 				<div class="composer-main"><img class="avatar" id="composer-avatar" src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&q=80" alt=""><textarea id="post-text" maxlength="500" placeholder="What's on your mind, Alex?" aria-label="Write a post"></textarea></div>
@@ -226,7 +234,7 @@
 	<!-- 07. Application scripts -->
 	<script src="supabase-config.js"></script>
 	<script src="posts.js"></script>
-	<script src="api.js?v=explicit-profile-join-5"></script>
-	<script src="script.js?v=my-posts-nav-4"></script>
+	<script src="api.js?v=search-page-8"></script>
+	<script src="script.js?v=search-page-8"></script>
 </body>
 </html>

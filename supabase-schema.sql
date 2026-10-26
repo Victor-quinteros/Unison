@@ -119,7 +119,7 @@ create table if not exists public.groups (
 	description text not null default ''
 );
 
-create table if not exists public.group_memberships (
+create table if not exists public.groups_memberships (
 	group_id text not null references public.groups (id) on delete cascade,
 	user_id uuid not null references public.profiles (id) on delete cascade,
 	created_at timestamptz not null default now(),
@@ -149,7 +149,7 @@ create table if not exists public.groups (
 	description text not null default ''
 );
 
-create table if not exists public.group_memberships (
+create table if not exists public.groups_memberships (
 	group_id text not null references public.groups (id) on delete cascade,
 	user_id uuid not null references public.profiles (id) on delete cascade,
 	created_at timestamptz not null default now(),
@@ -176,12 +176,12 @@ alter table public.post_comments enable row level security;
 alter table public.saved_posts enable row level security;
 alter table public.follows enable row level security;
 alter table public.groups enable row level security;
-alter table public.group_memberships enable row level security;
+alter table public.groups_memberships enable row level security;
 alter table public.stories enable row level security;
 
 grant usage on schema public to anon, authenticated;
-grant select on public.profiles, public.posts, public.post_likes, public.post_comments, public.groups, public.group_memberships, public.follows, public.stories to anon, authenticated;
-grant select, insert, update, delete on public.profiles, public.posts, public.post_likes, public.post_comments, public.saved_posts, public.follows, public.group_memberships, public.stories to authenticated;
+grant select on public.profiles, public.posts, public.post_likes, public.post_comments, public.groups, public.groups_memberships, public.follows, public.stories to anon, authenticated;
+grant select, insert, update, delete on public.profiles, public.posts, public.post_likes, public.post_comments, public.saved_posts, public.follows, public.groups_memberships, public.stories to authenticated;
 drop policy if exists "Profiles are readable by everyone" on public.profiles;
 create policy "Profiles are readable by everyone"
 	on public.profiles for select
@@ -269,16 +269,16 @@ create policy "Users unfollow as themselves"
 drop policy if exists "Groups are readable by everyone" on public.groups;
 create policy "Groups are readable by everyone"
 	on public.groups for select using (true);
-drop policy if exists "Memberships are readable by everyone" on public.group_memberships;
+drop policy if exists "Memberships are readable by everyone" on public.groups_memberships;
 create policy "Memberships are readable by everyone"
-	on public.group_memberships for select using (true);
-drop policy if exists "Users join groups as themselves" on public.group_memberships;
+	on public.groups_memberships for select using (true);
+drop policy if exists "Users join groups as themselves" on public.groups_memberships;
 create policy "Users join groups as themselves"
-	on public.group_memberships for insert to authenticated
+	on public.groups_memberships for insert to authenticated
 	with check (user_id = (select auth.uid()));
-drop policy if exists "Users leave groups as themselves" on public.group_memberships;
+drop policy if exists "Users leave groups as themselves" on public.groups_memberships;
 create policy "Users leave groups as themselves"
-	on public.group_memberships for delete to authenticated
+	on public.groups_memberships for delete to authenticated
 	using (user_id = (select auth.uid()));
 
 drop policy if exists "Unexpired stories are publicly readable" on public.stories;

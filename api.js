@@ -263,6 +263,29 @@ window.UnisonApi = Object.freeze({
 		if (supabaseSession?.user?.id) params.set("id", `neq.${supabaseSession.user.id}`);
 		return supabaseRequest(`profiles?${params}`);
 	},
+	async searchPeople(query) {
+		const safeQuery = String(query || "").replace(/[(),%_*]/g, " ").trim();
+		if (!safeQuery) return [];
+		const params = new URLSearchParams({
+			select: "id,handle,display_name,avatar_url,bio",
+			order: "display_name.asc",
+			limit: "12",
+			or: `(display_name.ilike.*${safeQuery}*,handle.ilike.*${safeQuery}*,bio.ilike.*${safeQuery}*)`
+		});
+		if (supabaseSession?.user?.id) params.set("id", `neq.${supabaseSession.user.id}`);
+		return supabaseRequest(`profiles?${params}`);
+	},
+	async searchGroups(query) {
+		const safeQuery = String(query || "").replace(/[(),%_*]/g, " ").trim();
+		if (!safeQuery) return [];
+		const params = new URLSearchParams({
+			select: "id,name,description",
+			order: "name.asc",
+			limit: "12",
+			or: `(name.ilike.*${safeQuery}*,description.ilike.*${safeQuery}*)`
+		});
+		return supabaseRequest(`groups?${params}`);
+	},
 	async getMyProfile() {
 		const session = await requireSession();
 		const params = new URLSearchParams({ select: "id,handle,display_name,avatar_url,bio", id: `eq.${session.user.id}`, limit: "1" });
@@ -319,17 +342,17 @@ window.UnisonApi = Object.freeze({
 		const params = new URLSearchParams({ group_id: `eq.${groupId}`, user_id: `eq.${session.user.id}` });
 		if (shouldJoin) {
 			params.set("on_conflict", "group_id,user_id");
-			return supabaseRequest(`group_memberships?${params}`, {
+			return supabaseRequest(`groups_memberships?${params}`, {
 				method: "POST", auth: true,
 				headers: { Prefer: "resolution=ignore-duplicates,return=minimal" },
 				body: { group_id: groupId, user_id: session.user.id }
 			});
 		}
-		return supabaseRequest(`group_memberships?${params}`, { method: "DELETE", auth: true });
+		return supabaseRequest(`groups_memberships?${params}`, { method: "DELETE", auth: true });
 	},
 	async listGroupMemberships() {
 		const session = await requireSession();
-		return supabaseRequest(`group_memberships?select=group_id&user_id=eq.${session.user.id}`, { auth: true });
+		return supabaseRequest(`groups_memberships?select=group_id&user_id=eq.${session.user.id}`, { auth: true });
 	},
 	async listStories() {
 		const params = new URLSearchParams({
