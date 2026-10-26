@@ -101,6 +101,7 @@
 				<fieldset class="profile-customization"><legend>Profile customization</legend><label class="dialog-field">Avatar border<select id="profile-border"><option value="none">No border</option><option value="coral">Coral</option><option value="gold">Gold</option><option value="rainbow">Rainbow</option></select></label><label class="dialog-field">Profile sticker<select id="profile-sticker"><option value="none">No sticker</option><option value="star">⭐ Star</option><option value="flower">🌸 Flower</option><option value="sparkle">✨ Sparkle</option><option value="fire">🔥 Fire</option></select></label></fieldset>
 				<section class="profile-others-preview" aria-labelledby="profile-others-heading"><h3 id="profile-others-heading">Profile appears to others</h3><div class="profile-others-card"><div class="profile-others-cover" id="profile-others-cover" hidden><img id="profile-others-cover-image" alt=""></div><div class="profile-others-identity"><div class="profile-avatar-frame" id="profile-others-frame" data-border="none" data-sticker="none"><img class="avatar" id="profile-others-avatar" alt=""><span class="profile-sticker" aria-hidden="true" hidden></span></div><div><strong id="profile-others-name">Your name</strong><span id="profile-others-handle">@member</span></div></div><p id="profile-others-bio"></p></div></section>
 				<button class="dialog-primary" id="profile-save" type="button">Save profile</button>
+				<p class="profile-save-status" id="profile-save-status" role="status" aria-live="polite" hidden></p>
 			</section>
 			<section class="messages-page" id="messages-page" hidden aria-label="Messages">
 				<div class="messages-inbox">
@@ -285,7 +286,7 @@
 	<!-- 07. Application scripts -->
 	<script src="supabase-config.js"></script>
 	<script src="posts.js"></script>
-	<script src="api.js?v=profile-page-20"></script>
-	<script src="script.js?v=profile-preview-21"></script>
+	<script src="api.js?v=profile-upload-fix-23"></script>
+	<script src="script.js?v=profile-login-upload-fix-24"></script>
 </body>
 </html>

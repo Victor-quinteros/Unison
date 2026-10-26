@@ -404,6 +404,9 @@ h1 { margin-bottom: 3px; font-family: var(--display); font-size: 20px; font-weig
 .profile-others-identity strong { color: var(--ink); font-size: 13px; }
 .profile-others-identity span:not(.profile-sticker) { color: var(--muted); font-size: 11px; }
 .profile-others-card > p { margin: 0; padding: 0 13px 13px; color: var(--muted); font-size: 11px; line-height: 1.5; white-space: pre-wrap; }
+.profile-save-status { margin: 0; color: var(--muted); font-size: 11px; line-height: 1.45; overflow-wrap: anywhere; }
+.profile-save-status[hidden] { display: none; }
+.profile-save-status.error { color: #b33c2c; }
 .profile-editor textarea { width: 100%; min-height: 76px; padding: 9px 10px; resize: vertical; border: 1px solid var(--line); border-radius: 6px; background: var(--surface-soft); color: var(--ink); font: inherit; font-size: 12px; }
 .dialog-field input, .comment-form input { width: 100%; height: 38px; padding: 0 10px; border: 1px solid var(--line); border-radius: 6px; background: var(--surface-soft); color: var(--ink); font: inherit; font-size: 12px; }
 .password-control { position: relative; }

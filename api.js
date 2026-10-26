@@ -136,8 +136,15 @@ async function privateMediaUrl(path) {
 }
 
 async function profileAvatarUrl(value) {
-	const oldPostMediaPath = storageObjectPath("post-media", value);
-	return oldPostMediaPath ? privateMediaUrl(oldPostMediaPath) : String(value || "");
+	const source = String(value || "");
+	if (!source) return "";
+	const postMediaPath = storageObjectPath("post-media", source);
+	if (!postMediaPath) return source;
+	if (!source.startsWith("http") && /(^|\/)profile-[^/]+$/i.test(source)) {
+		const profilePath = source.split("/").map(encodeURIComponent).join("/");
+		return `${supabaseUrl}/storage/v1/object/public/profile-media/${profilePath}`;
+	}
+	return privateMediaUrl(postMediaPath);
 }
 
 async function mapPost(row) {
@@ -306,7 +313,7 @@ window.UnisonApi = Object.freeze({
 		});
 		if (supabaseSession?.user?.id) params.set("id", `neq.${supabaseSession.user.id}`);
 		const rows = await supabaseRequest(`profiles?${params}`, { auth: true });
-		return Promise.all(rows.map(async (profile) => ({ ...profile, avatar_url: await profileAvatarUrl(profile.avatar_url) })));
+		return Promise.all(rows.map(async (profile) => ({ ...profile, avatar_url: await profileAvatarUrl(profile.avatar_url).catch(() => "") })));
 	},
 	async searchPeople(query) {
 		await requireSession();
@@ -320,7 +327,7 @@ window.UnisonApi = Object.freeze({
 		});
 		if (supabaseSession?.user?.id) params.set("id", `neq.${supabaseSession.user.id}`);
 		const rows = await supabaseRequest(`profiles?${params}`, { auth: true });
-		return Promise.all(rows.map(async (profile) => ({ ...profile, avatar_url: await profileAvatarUrl(profile.avatar_url) })));
+		return Promise.all(rows.map(async (profile) => ({ ...profile, avatar_url: await profileAvatarUrl(profile.avatar_url).catch(() => "") })));
 	},
 	async searchGroups(query) {
 		const safeQuery = String(query || "").replace(/[(),%_*]/g, " ").trim();
@@ -338,7 +345,7 @@ window.UnisonApi = Object.freeze({
 		const params = new URLSearchParams({ select: "id,handle,display_name,avatar_url,profile_background_url,bio,avatar_border,profile_sticker", id: `eq.${session.user.id}`, limit: "1" });
 		const rows = await supabaseRequest(`profiles?${params}`, { auth: true });
 		if (!rows[0]) return null;
-		return { ...rows[0], avatar_url: await profileAvatarUrl(rows[0].avatar_url) };
+		return { ...rows[0], avatar_url: await profileAvatarUrl(rows[0].avatar_url).catch(() => "") };
 	},
 	async getPublicProfile(userId) {
 		const auth = Boolean(supabaseSession);
@@ -459,8 +466,8 @@ window.UnisonApi = Object.freeze({
 		const rows = await supabaseRequest(`stories?${params}`, { auth: true });
 		return Promise.all(rows.map(async (row) => ({
 			...row,
-			image: await privateMediaUrl(row.image_path),
-			avatar: await profileAvatarUrl(row.profiles?.avatar_url),
+			image: await privateMediaUrl(row.image_path).catch(() => ""),
+			avatar: await profileAvatarUrl(row.profiles?.avatar_url).catch(() => ""),
 			name: row.profiles?.display_name || "Unison member"
 		})));
 	},
@@ -476,8 +483,8 @@ window.UnisonApi = Object.freeze({
 		const row = rows[0];
 		return {
 			...row,
-			image: await privateMediaUrl(row.image_path),
-			avatar: await profileAvatarUrl(row.profiles?.avatar_url),
+			image: await privateMediaUrl(row.image_path).catch(() => ""),
+			avatar: await profileAvatarUrl(row.profiles?.avatar_url).catch(() => ""),
 			name: row.profiles?.display_name || "Unison member"
 		};
 	},

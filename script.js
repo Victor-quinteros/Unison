@@ -99,6 +99,14 @@
 		toastTimer = window.setTimeout(() => toast.classList.remove("show"), 2000);
 	}
 
+	function profileErrorMessage(error) {
+		const message = error?.message || "Could not load or save your profile.";
+		if (/profile_background_url/i.test(message) && /column|schema cache|does not exist/i.test(message)) {
+			return "Supabase is missing the profile background column. Run the updated supabase-private-community-migration.sql in the SQL Editor, then refresh.";
+		}
+		return message;
+	}
+
 	function persistActiveView() {
 		try {
 			window.sessionStorage.setItem("unison.active-view", JSON.stringify({
@@ -652,7 +660,7 @@
 			refreshStories().catch((error) => showToast(error.message));
 			refreshPeople().catch((error) => showToast(error.message));
 			refreshSupabaseFeed().catch((error) => showToast(error.message));
-			loadMyProfile().catch((error) => showToast(error.message));
+			loadMyProfile().catch((error) => showToast(profileErrorMessage(error)));
 			refreshGroupMemberships().catch((error) => showToast(error.message));
 		}
 	}
@@ -742,7 +750,7 @@
 				openAuthDialog("Sign in to view and edit your profile.");
 				return;
 			}
-			loadMyProfile().catch((error) => showToast(error.message));
+			loadMyProfile().catch((error) => showToast(profileErrorMessage(error)));
 			return;
 		}
 		if (view === "messages") {
@@ -869,7 +877,7 @@
 			await Promise.all([refreshSupabaseFeed(), refreshPeople()]);
 			showToast("Handle updated.");
 		} catch (error) {
-			showToast(error.message);
+			showToast(profileErrorMessage(error));
 		} finally {
 			button.disabled = false;
 			button.textContent = "Save handle";
@@ -909,6 +917,7 @@
 	document.querySelector("#profile-sticker").addEventListener("change", (event) => { applyProfileDecoration(document.querySelector("#profile-avatar-frame"), document.querySelector("#profile-border").value, event.currentTarget.value); renderMyProfilePreview(); });
 	document.querySelector("#profile-save").addEventListener("click", async (event) => {
 		const button = event.currentTarget;
+		const status = document.querySelector("#profile-save-status");
 		const displayName = document.querySelector("#profile-display-name").value.trim();
 		const bio = document.querySelector("#profile-bio").value.trim();
 		const avatarBorder = document.querySelector("#profile-border").value;
@@ -919,23 +928,34 @@
 		if (!displayName) return showToast("Add a display name.");
 		if (!/^[A-Za-z0-9_]{2,24}$/.test(handle)) return showToast("Use 2–24 letters, numbers, or underscores for your handle.");
 		button.disabled = true;
+		status.hidden = false;
+		status.classList.remove("error");
+		status.textContent = photo || backgroundPhoto ? "Uploading your photos…" : "Saving your profile…";
 		button.textContent = "Saving…";
 		try {
 			let avatarUrl = currentProfile?.avatar_url || "";
 			let backgroundUrl = currentProfile?.profile_background_url || "";
 			if (photo) avatarUrl = await window.UnisonApi.uploadProfileImage(photo);
 			if (backgroundPhoto) backgroundUrl = await window.UnisonApi.uploadProfileImage(backgroundPhoto);
-			currentProfile = await window.UnisonApi.updateMyProfile({ displayName, bio, avatarUrl, backgroundUrl, avatarBorder, profileSticker });
+			status.textContent = "Saving your profile…";
+			const updatedProfile = await window.UnisonApi.updateMyProfile({ displayName, bio, avatarUrl, backgroundUrl, avatarBorder, profileSticker });
+			if (!updatedProfile) throw new Error("Supabase did not return the updated profile. Check that your profile row exists and try again.");
+			currentProfile = updatedProfile;
 			updateAccount(window.UnisonAuth.getUser(), currentProfile);
 			document.querySelector("#profile-avatar-preview").src = currentProfile.avatar_url || fallbackAvatar;
 			applyProfileDecoration(document.querySelector("#profile-avatar-frame"), currentProfile.avatar_border, currentProfile.profile_sticker);
 			document.querySelector("#profile-avatar-file").value = "";
 			document.querySelector("#profile-background-file").value = "";
 			setProfileCoverPreview(currentProfile.profile_background_url || "");
-			await Promise.all([refreshSupabaseFeed(), refreshPeople(), refreshStories()]);
+			status.textContent = "Your profile and uploaded photos are saved.";
 			showToast("Profile saved.");
+			Promise.allSettled([refreshSupabaseFeed(), refreshPeople(), refreshStories()]).then((refreshResults) => {
+				if (refreshResults.some((result) => result.status === "rejected")) showToast("Profile saved. Some profile pictures or posts may take a moment to refresh.");
+			});
 		} catch (error) {
-			showToast(error.message);
+			status.classList.add("error");
+			status.textContent = profileErrorMessage(error);
+			showToast(status.textContent);
 		} finally {
 			button.disabled = false;
 			button.textContent = "Save profile";
@@ -987,14 +1007,12 @@
 			}
 			currentProfile = null;
 			updatePrivateAccess();
-			await loadMyProfile();
-			updateAccount(window.UnisonAuth.getUser(), currentProfile);
+			updateAccount(window.UnisonAuth.getUser(), null);
 			authDialog.close();
-			await refreshSupabaseFeed();
-			await refreshGroupMemberships();
-			await refreshStories();
-			await refreshPeople();
 			showToast("You are signed in.");
+			Promise.allSettled([loadMyProfile(), refreshSupabaseFeed(), refreshGroupMemberships(), refreshStories(), refreshPeople()]).then((results) => {
+				if (results.some((result) => result.status === "rejected")) showToast("You are signed in, but some profile or feed data could not load.");
+			});
 		} catch (error) {
 			message.textContent = error.message || "We couldn’t sign you in. Check your details and try again.";
 			showToast(error.message);
