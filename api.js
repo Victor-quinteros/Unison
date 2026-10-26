@@ -138,7 +138,7 @@ function mapPost(row) {
 function postSelect() {
 	return [
 		"id", "user_id", "body", "scope", "image_path", "created_at",
-		"profiles(display_name,handle,avatar_url)", "post_likes(user_id)", "post_comments(id)",
+		"profiles!posts_user_id_fkey(display_name,handle,avatar_url)", "post_likes(user_id)", "post_comments(id)",
 		...(supabaseSession ? ["saved_posts(user_id)"] : [])
 	].join(",");
 }
@@ -248,7 +248,7 @@ window.UnisonApi = Object.freeze({
 	},
 	async listComments(postId) {
 		const params = new URLSearchParams({
-			select: "id,body,created_at,profiles(display_name,handle)",
+			select: "id,body,created_at,profiles!post_comments_user_id_fkey(display_name,handle)",
 			post_id: `eq.${postId}`,
 			order: "created_at.asc"
 		});
@@ -294,7 +294,7 @@ window.UnisonApi = Object.freeze({
 		const session = await requireSession();
 		const text = String(body || "").trim();
 		if (!text) throw new TypeError("Comment text is required.");
-		const rows = await supabaseRequest("post_comments?select=id,body,created_at,profiles(display_name,handle)", {
+		const rows = await supabaseRequest("post_comments?select=id,body,created_at,profiles!post_comments_user_id_fkey(display_name,handle)", {
 			method: "POST", auth: true,
 			headers: { Prefer: "return=representation" },
 			body: { post_id: postId, user_id: session.user.id, body: text }
@@ -333,7 +333,7 @@ window.UnisonApi = Object.freeze({
 	},
 	async listStories() {
 		const params = new URLSearchParams({
-			select: "id,user_id,image_path,caption,expires_at,created_at,profiles(display_name,handle,avatar_url)",
+			select: "id,user_id,image_path,caption,expires_at,created_at,profiles!stories_user_id_fkey(display_name,handle,avatar_url)",
 			expires_at: `gt.${new Date().toISOString()}`,
 			order: "created_at.desc"
 		});
@@ -348,7 +348,7 @@ window.UnisonApi = Object.freeze({
 		const session = await requireSession();
 		if (!imageFile) throw new TypeError("Choose a photo for your story.");
 		const imagePath = await this.uploadPostImage(imageFile);
-		const rows = await supabaseRequest("stories?select=id,user_id,image_path,caption,expires_at,created_at,profiles(display_name,handle,avatar_url)", {
+		const rows = await supabaseRequest("stories?select=id,user_id,image_path,caption,expires_at,created_at,profiles!stories_user_id_fkey(display_name,handle,avatar_url)", {
 			method: "POST", auth: true,
 			headers: { Prefer: "return=representation" },
 			body: { user_id: session.user.id, image_path: imagePath, caption }
