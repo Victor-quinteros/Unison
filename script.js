@@ -372,20 +372,24 @@
 
 	function setView(view) {
 		currentView = view;
-		currentFeed = "all";
-		viewTitle.textContent = view === "saved" ? "Saved" : view === "explore" ? "Explore" : view === "townsquare" ? "Townsquare" : "Home";
-		pageSubtitle.textContent = view === "townsquare" ? "Your neighborhood, one conversation at a time." : "Good things happen when we find each other.";
+		currentFeed = view === "my-posts" ? "mine" : "all";
+		viewTitle.textContent = view === "my-posts" ? "My posts" : view === "saved" ? "Saved" : view === "explore" ? "Explore" : view === "townsquare" ? "Townsquare" : "Home";
+		pageSubtitle.textContent = view === "my-posts" ? "Everything you have shared with your circle." : view === "townsquare" ? "Your neighborhood, one conversation at a time." : "Good things happen when we find each other.";
 		townSquareIntro.hidden = view !== "townsquare";
 		feedControls.hidden = view === "townsquare";
 		input.placeholder = view === "townsquare" ? "Share something happening nearby..." : "What's on your mind, Alex?";
 		document.querySelectorAll("[data-view]").forEach((button) => button.classList.toggle("active", button.dataset.view === view));
 		document.querySelectorAll("[data-filter]").forEach((button) => {
-			const active = button.dataset.filter === "all";
+			const active = button.dataset.filter === (view === "my-posts" ? "mine" : "all");
 			button.classList.toggle("active", active);
 			button.setAttribute("aria-selected", String(active));
 		});
 		if (view === "explore") search.focus();
 		applyFilters();
+		if (view === "my-posts" && window.UnisonApi.isConfigured() && !window.UnisonAuth.getUser()) {
+			openAuthDialog("Sign in to see your posts.");
+			return;
+		}
 		refreshSupabaseFeed().catch((error) => showToast(error.message));
 	}
 
