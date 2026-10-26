@@ -146,12 +146,13 @@ async function mapPost(row) {
 	const savedPosts = row.saved_posts || [];
 	const imagePath = storageObjectPath("post-media", row.image_path);
 	const [image, avatar] = await Promise.all([
-		imagePath ? privateMediaUrl(imagePath) : Promise.resolve(""),
-		profileAvatarUrl(profile.avatar_url)
+		imagePath ? privateMediaUrl(imagePath).catch(() => "") : Promise.resolve(""),
+		profileAvatarUrl(profile.avatar_url).catch(() => "")
 	]);
 	return {
 		id: row.id,
 		userId: row.user_id,
+		visibility: row.visibility || "public",
 		author: profile.display_name || "Unison member",
 		handle: profile.handle ? `@${profile.handle}` : "@member",
 		time: new Intl.RelativeTimeFormat("en", { numeric: "auto" }).format(-Math.max(1, Math.floor((Date.now() - new Date(row.created_at).getTime()) / 3600000)), "hour"),
@@ -172,7 +173,7 @@ async function mapPost(row) {
 
 function postSelect() {
 	return [
-		"id", "user_id", "body", "scope", "image_path", "created_at",
+		"id", "user_id", "body", "scope", "visibility", "image_path", "created_at",
 		"profiles!posts_user_id_fkey(display_name,handle,avatar_url)", "post_likes(user_id)", "post_comments(id)",
 		...(supabaseSession ? ["saved_posts(user_id)"] : [])
 	].join(",");
@@ -240,7 +241,7 @@ window.UnisonApi = Object.freeze({
 		const rows = await supabaseRequest(`posts?${params}`, { auth: true });
 		return Promise.all(rows.map(mapPost));
 	},
-	async createPost({ text, scope = "home", imageFile = null }) {
+	async createPost({ text, scope = "home", visibility = "public", imageFile = null }) {
 		const session = await requireSession();
 		const body = String(text || "").trim();
 		if (!body && !imageFile) throw new TypeError("Add text or a photo before posting.");
@@ -251,7 +252,7 @@ window.UnisonApi = Object.freeze({
 			method: "POST",
 			auth: true,
 			headers: { Prefer: "return=representation" },
-			body: { user_id: session.user.id, body: body || "", scope, image_path: imagePath }
+			body: { user_id: session.user.id, body: body || "", scope, visibility, image_path: imagePath }
 		});
 		return mapPost(rows[0]);
 	},

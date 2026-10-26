@@ -7,6 +7,7 @@
 	const emptyState = document.querySelector("#empty-state");
 	const authGate = document.querySelector("#auth-gate");
 	const postScope = document.querySelector("#post-scope");
+	const postVisibility = document.querySelector("#post-visibility");
 	const viewTitle = document.querySelector("#view-title");
 	const pageSubtitle = document.querySelector(".page-subtitle");
 	const townSquareIntro = document.querySelector("#town-square-intro");
@@ -102,12 +103,15 @@
 		post.dataset.author = postData.handle;
 		post.dataset.search = `${postData.author} ${postData.handle} ${postData.search || ""} ${postData.text}`.toLowerCase();
 
-		if (postData.local || postData.community) {
+		if (postData.local || postData.community || postData.visibility === "private") {
 			post.classList.add("town-square-post");
 			if (postData.local) post.dataset.local = "true";
 			if (postData.community) post.dataset.community = "true";
-			post.querySelector('[data-field="local-meta"] span').textContent = postData.community ? "Community feed" : "Townsquare";
-			post.querySelector('[data-field="local-type"]').textContent = postData.localType;
+			const labels = [];
+			if (postData.community) labels.push("Community feed");
+			else if (postData.local) labels.push("Townsquare");
+			if (postData.visibility === "private") labels.push("Only you");
+			post.querySelector('[data-field="local-meta"]').textContent = labels.join(" · ");
 		} else {
 			post.querySelector('[data-field="local-meta"]').remove();
 		}
@@ -1040,6 +1044,7 @@
 		const user = window.UnisonAuth.getUser();
 		const metadata = user?.user_metadata || {};
 		const destination = currentView === "townsquare" ? "townsquare" : currentView === "community" ? "community" : postScope.value;
+		const visibility = postVisibility.value;
 		const postData = {
 			id: crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`,
 			author: currentProfile?.display_name || metadata.display_name || user?.email?.split("@")[0] || "Alex Morgan",
@@ -1047,6 +1052,7 @@
 			time: "now",
 			avatar: currentProfile?.avatar_url || metadata.avatar_url || fallbackAvatar,
 			text,
+			visibility,
 			search: text,
 			likes: 0,
 			replies: 0,
@@ -1058,7 +1064,7 @@
 		};
 		try {
 			if (window.UnisonApi.isConfigured()) {
-				const savedPost = await window.UnisonApi.createPost({ text, scope: destination, imageFile: selectedPhoto });
+				const savedPost = await window.UnisonApi.createPost({ text, scope: destination, visibility, imageFile: selectedPhoto });
 				Object.assign(postData, savedPost);
 			}
 			feedPosts.unshift(postData);

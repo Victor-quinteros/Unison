@@ -199,7 +199,7 @@ h1 { margin-bottom: 3px; font-family: var(--display); font-size: 20px; font-weig
 .composer textarea:focus { outline: 0; }
 .composer textarea::placeholder { color: var(--muted); }
 .composer-footer { display: flex; align-items: center; justify-content: space-between; margin: 4px 0 0 48px; padding-top: 7px; border-top: 1px solid var(--line); }
-.composer-tools { display: flex; gap: 13px; color: var(--muted); font-size: 9px; }
+.composer-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 13px; color: var(--muted); font-size: 9px; }
 .composer-tool { padding: 0; border: 0; background: transparent; color: inherit; }
 .composer-tool:hover { color: var(--accent); }
 .post-button { min-height: 32px; padding: 0 15px; border: 0; border-radius: 5px; background: var(--accent); color: white; font-size: 11px; font-weight: 700; transition: transform .18s ease; }
