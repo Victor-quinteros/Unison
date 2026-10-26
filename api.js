@@ -184,6 +184,10 @@ window.UnisonApi = Object.freeze({
 		if (scope === "townsquare") params.set("scope", "eq.townsquare");
 		if (scope === "home") params.set("scope", "in.(home,townsquare)");
 		if (profileUserId) params.set("user_id", `eq.${profileUserId}`);
+		if (scope === "mine") {
+			const session = await requireSession();
+			params.set("user_id", `eq.${session.user.id}`);
+		}
 		if (scope === "following" || scope === "saved") {
 			const session = await requireSession();
 			if (scope === "following") {

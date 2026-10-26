@@ -84,6 +84,7 @@
 		const template = document.querySelector("#post-template");
 		const post = template.content.firstElementChild.cloneNode(true);
 		if (postData.id) post.dataset.postId = postData.id;
+		if (postData.userId) post.dataset.userId = postData.userId;
 		if (postData.saved) post.classList.add("saved");
 		post.dataset.author = postData.handle;
 		post.dataset.search = `${postData.author} ${postData.handle} ${postData.search || ""} ${postData.text}`.toLowerCase();
@@ -334,7 +335,7 @@
 	async function refreshSupabaseFeed() {
 		if (!window.UnisonApi.isConfigured()) return;
 		const requestId = ++feedRequestId;
-		const scope = currentView === "townsquare" ? "townsquare" : currentView === "saved" ? "saved" : currentFeed === "following" ? "following" : "home";
+		const scope = currentView === "townsquare" ? "townsquare" : currentView === "saved" ? "saved" : currentFeed === "following" ? "following" : currentFeed === "mine" ? "mine" : "home";
 		const results = await window.UnisonApi.listPosts({ scope, search: search.value.trim() });
 		if (requestId !== feedRequestId) return;
 		feedPosts = results;
@@ -360,8 +361,10 @@
 		feed.querySelectorAll(".post").forEach((post) => {
 			const matchesSearch = !query || `${post.textContent} ${post.dataset.search || ""}`.toLowerCase().includes(query);
 			const matchesView = currentView === "saved" ? post.classList.contains("saved") : currentView !== "townsquare" || post.dataset.local === "true";
-			const matchesFollowing = window.UnisonApi.isConfigured() || currentFeed !== "following" || following.has(post.dataset.author);
-			post.hidden = !(matchesSearch && matchesView && matchesFollowing);
+			const matchesFollowing = currentFeed !== "following" || window.UnisonApi.isConfigured() || following.has(post.dataset.author);
+			const userId = window.UnisonAuth.getUser()?.id;
+			const matchesMine = currentFeed !== "mine" || (userId ? post.dataset.userId === userId : post.dataset.author === "@alexm");
+			post.hidden = !(matchesSearch && matchesView && matchesFollowing && matchesMine);
 			if (!post.hidden) visible += 1;
 		});
 		emptyState.style.display = visible ? "none" : "block";
@@ -630,14 +633,18 @@
 	document.querySelectorAll("[data-filter]").forEach((button) => button.addEventListener("click", () => {
 		currentView = "home";
 		currentFeed = button.dataset.filter;
-		viewTitle.textContent = currentFeed === "following" ? "Your people, first." : "Your circle, in sync.";
+		viewTitle.textContent = currentFeed === "following" ? "Your people, first." : currentFeed === "mine" ? "My posts" : "Your circle, in sync.";
 		document.querySelectorAll("[data-filter]").forEach((item) => {
 			const active = item.dataset.filter === currentFeed;
 			item.classList.toggle("active", active);
 			item.setAttribute("aria-selected", String(active));
 		});
 		applyFilters();
-			refreshSupabaseFeed().catch((error) => showToast(error.message));
+		if (currentFeed === "mine" && window.UnisonApi.isConfigured() && !window.UnisonAuth.getUser()) {
+			openAuthDialog("Sign in to see your posts.");
+			return;
+		}
+		refreshSupabaseFeed().catch((error) => showToast(error.message));
 	}));
 	document.querySelectorAll("[data-focus-composer]").forEach((button) => button.addEventListener("click", () => {
 		input.focus();
@@ -835,6 +842,9 @@
 		const text = input.value.trim();
 		if (!text) return showToast("Write a message before sharing.");
 		if (window.UnisonApi.isConfigured() && !requireSignedIn()) return;
+		const postStatus = document.querySelector("#post-status");
+		postStatus.hidden = true;
+		postStatus.textContent = "";
 		const shareButton = form.querySelector('[type="submit"]');
 		if (shareButton.disabled) return;
 		shareButton.disabled = true;
@@ -870,8 +880,11 @@
 			document.querySelector("#photo-preview").hidden = true;
 			if (currentView !== "townsquare") setView("home");
 			applyFilters();
+			postStatus.hidden = true;
 			showToast(window.UnisonApi.isConfigured() ? "Post published." : "Post added for this session.");
 		} catch (error) {
+			postStatus.textContent = error.message || "The post could not be published. Please try again.";
+			postStatus.hidden = false;
 			showToast(error.message);
 		} finally {
 			shareButton.disabled = false;

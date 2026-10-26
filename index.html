@@ -9,7 +9,7 @@
 	<link rel="preconnect" href="https://fonts.googleapis.com">
 	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 	<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
-	<link rel="stylesheet" href="style.css?v=post-profile-2">
+	<link rel="stylesheet" href="style.css?v=post-flow-3">
 </head>
 <body>
 	<!-- 02. Global navigation -->
@@ -87,6 +87,7 @@
 				<input id="photo-input" type="file" accept="image/*" hidden>
 				<input id="story-input" type="file" accept="image/*" hidden>
 				<div class="composer-footer"><div class="composer-tools"><button class="composer-tool" type="button" data-attach-photo aria-label="Add a photo">▧ &nbsp;Photo</button><button class="composer-tool" type="button" data-open-feelings aria-expanded="false">☺ &nbsp;Feeling</button></div><button class="post-button" type="submit">Share post</button></div>
+				<p class="post-status" id="post-status" role="status" aria-live="polite" hidden></p>
 			</form>
 
 			<div class="stories" aria-label="Stories">
@@ -103,7 +104,7 @@
 			</section>
 
 			<div class="feed-controls">
-				<div class="feed-tabs" role="tablist" aria-label="Feed filter"><button class="feed-tab active" type="button" data-filter="all" aria-selected="true">For you</button><button class="feed-tab" type="button" data-filter="following" aria-selected="false">Following</button></div>
+				<div class="feed-tabs" role="tablist" aria-label="Feed filter"><button class="feed-tab active" type="button" data-filter="all" aria-selected="true">For you</button><button class="feed-tab" type="button" data-filter="following" aria-selected="false">Following</button><button class="feed-tab" type="button" data-filter="mine" aria-selected="false">My posts</button></div>
 				<span class="sort-label">Fresh from your circle</span>
 			</div>
 
@@ -223,7 +224,7 @@
 	<!-- 07. Application scripts -->
 	<script src="supabase-config.js"></script>
 	<script src="posts.js"></script>
-	<script src="api.js?v=post-profile-2"></script>
-	<script src="script.js?v=post-profile-2"></script>
+	<script src="api.js?v=post-flow-3"></script>
+	<script src="script.js?v=post-flow-3"></script>
 </body>
 </html>
