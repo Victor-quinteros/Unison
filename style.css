@@ -77,10 +77,10 @@ body[data-theme="dim"][data-accent="coral"] { --accent: #ff927e; --accent-soft: 
 .sidebar { position: sticky; top: 52px; display: flex; max-height: calc(100vh - 52px); flex-direction: column; gap: 12px; overflow-y: auto; padding: 12px 0 18px; scrollbar-width: thin; }
 .sidebar > .brand { display: none; }
 .brand { display: inline-flex; width: fit-content; align-items: center; gap: 10px; color: var(--ink); font-family: var(--display); font-size: 25px; font-weight: 800; text-decoration: none; }
-.brand-mark { position: relative; display: grid; width: 34px; height: 34px; place-items: center; border-radius: 12px 12px 12px 5px; background: var(--lime); color: #213229; font-size: 0; transform: rotate(-4deg); }
-.brand-mark::before, .brand-mark::after { position: absolute; width: 4px; height: 15px; border-radius: 4px; background: #213229; content: ""; }
-.brand-mark::before { transform: rotate(-32deg); }
-.brand-mark::after { transform: rotate(32deg); }
+.brand-mark { position: relative; display: grid; width: 34px; height: 34px; place-items: center; overflow: hidden; border-radius: 11px 11px 11px 4px; background: radial-gradient(circle at 50% 50%, #fff 0 2px, transparent 2.5px), linear-gradient(145deg, #397cf6, #7892ff); box-shadow: 0 4px 10px rgba(57, 124, 246, .2); }
+.brand-mark::before, .brand-mark::after { position: absolute; width: 15px; height: 15px; border: 2px solid; border-radius: 50%; content: ""; }
+.brand-mark::before { top: 5px; left: 5px; border-color: #fff; }
+.brand-mark::after { right: 5px; bottom: 5px; border-color: var(--lime); }
 .nav-list { display: grid; gap: 2px; margin: 0; padding: 0; list-style: none; }
 .nav-button { display: flex; width: 100%; min-height: 34px; align-items: center; gap: 10px; padding: 0 9px; border: 0; border-radius: 6px; background: transparent; color: var(--ink); text-align: left; font-size: 11px; transition: background .18s ease, color .18s ease; }
 .nav-button:hover, .nav-button.active { background: var(--surface); color: var(--ink); }
