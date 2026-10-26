@@ -9,7 +9,7 @@
 	<link rel="preconnect" href="https://fonts.googleapis.com">
 	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 	<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
-	<link rel="stylesheet" href="style.css?v=profile-polish-1">
+	<link rel="stylesheet" href="style.css?v=post-profile-2">
 </head>
 <body>
 	<!-- 02. Global navigation -->
@@ -111,7 +111,7 @@
 			<template id="post-template">
 				<article class="post">
 					<header class="post-header">
-						<img class="avatar post-avatar" data-field="avatar" alt="">
+						<button class="post-avatar-link" type="button" data-profile-link aria-label="Open author profile"><img class="avatar post-avatar" data-field="avatar" alt=""></button>
 						<div class="post-identity"><div class="name-line"><button class="post-profile-link" type="button" data-profile-link><span class="post-name" data-field="author"></span><span class="post-handle" data-field="handle"></span></button><span class="post-time" data-field="time"></span></div></div>
 						<button class="post-menu" type="button" data-action="menu" aria-label="More post options">···</button>
 					</header>
@@ -223,7 +223,7 @@
 	<!-- 07. Application scripts -->
 	<script src="supabase-config.js"></script>
 	<script src="posts.js"></script>
-	<script src="api.js?v=auth-session-1"></script>
-	<script src="script.js?v=auth-session-1"></script>
+	<script src="api.js?v=post-profile-2"></script>
+	<script src="script.js?v=post-profile-2"></script>
 </body>
 </html>

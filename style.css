@@ -189,6 +189,8 @@ h1 { margin-bottom: 3px; font-family: var(--display); font-size: 20px; font-weig
 .post { margin-bottom: 10px; padding: 11px 12px 8px; animation: enter .35s both; }
 @keyframes enter { from { opacity: 0; transform: translateY(7px); } to { opacity: 1; transform: translateY(0); } }
 .post-header { display: flex; align-items: center; gap: 10px; }
+.post-avatar-link { flex: 0 0 auto; padding: 0; border: 0; border-radius: 50%; background: transparent; }
+.post-avatar-link .avatar { display: block; }
 .post-avatar { width: 38px; height: 38px; }
 .post-identity { min-width: 0; flex: 1; }
 .name-line { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px; }

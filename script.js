@@ -97,9 +97,11 @@
 		}
 
 		post.querySelector('[data-field="avatar"]').src = postData.avatar || fallbackAvatar;
-		const profileLink = post.querySelector("[data-profile-link]");
-		profileLink.dataset.profileId = postData.userId || "";
-		profileLink.dataset.profileHandle = postData.handle || "";
+		post.querySelectorAll("[data-profile-link]").forEach((profileLink) => {
+			profileLink.dataset.profileId = postData.userId || "";
+			profileLink.dataset.profileHandle = postData.handle || "";
+			if (profileLink.classList.contains("post-avatar-link")) profileLink.setAttribute("aria-label", `Open ${postData.author}'s profile`);
+		});
 		post.querySelector('[data-field="author"]').textContent = postData.author;
 		post.querySelector('[data-field="handle"]').textContent = postData.handle;
 		post.querySelector('[data-field="time"]').textContent = `· ${postData.time}`;
@@ -833,15 +835,19 @@
 		const text = input.value.trim();
 		if (!text) return showToast("Write a message before sharing.");
 		if (window.UnisonApi.isConfigured() && !requireSignedIn()) return;
+		const shareButton = form.querySelector('[type="submit"]');
+		if (shareButton.disabled) return;
+		shareButton.disabled = true;
+		shareButton.textContent = "Posting…";
 
 		const user = window.UnisonAuth.getUser();
 		const metadata = user?.user_metadata || {};
 		const postData = {
 			id: crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`,
-			author: metadata.display_name || user?.email?.split("@")[0] || "Alex Morgan",
-			handle: metadata.handle ? `@${metadata.handle}` : user ? `@${user.email?.split("@")[0]}` : "@alexm",
+			author: currentProfile?.display_name || metadata.display_name || user?.email?.split("@")[0] || "Alex Morgan",
+			handle: currentProfile?.handle ? `@${currentProfile.handle}` : metadata.handle ? `@${metadata.handle}` : user ? `@${user.email?.split("@")[0]}` : "@alexm",
 			time: "now",
-			avatar: metadata.avatar_url || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&q=80",
+			avatar: currentProfile?.avatar_url || metadata.avatar_url || fallbackAvatar,
 			text,
 			search: text,
 			likes: 0,
@@ -867,6 +873,9 @@
 			showToast(window.UnisonApi.isConfigured() ? "Post published." : "Post added for this session.");
 		} catch (error) {
 			showToast(error.message);
+		} finally {
+			shareButton.disabled = false;
+			shareButton.textContent = "Share post";
 		}
 	});
 
