@@ -42,6 +42,7 @@ alter table public.posts
 grant select on public.posts, public.post_likes, public.post_comments, public.stories to authenticated;
 revoke select on public.posts, public.post_likes, public.post_comments, public.stories from anon, public;
 grant select on public.posts to anon;
+grant insert on public.posts to authenticated;
 
 drop policy if exists "Posts are readable by everyone" on public.posts;
 drop policy if exists "Posts are readable by signed-in members" on public.posts;
@@ -53,6 +54,10 @@ drop policy if exists "Visitors read public community posts" on public.posts;
 create policy "Visitors read public community posts"
 	on public.posts for select to anon
 	using (scope = 'community' and visibility = 'public');
+drop policy if exists "Users create their own posts" on public.posts;
+create policy "Users create their own posts"
+	on public.posts for insert to authenticated
+	with check (user_id = (select auth.uid()));
 
 drop policy if exists "Likes are readable by everyone" on public.post_likes;
 drop policy if exists "Likes are readable by signed-in members" on public.post_likes;
@@ -85,6 +90,11 @@ create policy "Unexpired stories are readable by members"
 insert into storage.buckets (id, name, public)
 values ('post-media', 'post-media', false)
 on conflict (id) do update set public = false;
+grant insert on storage.objects to authenticated;
+drop policy if exists "Signed-in users upload their own post images" on storage.objects;
+create policy "Signed-in users upload their own post images"
+	on storage.objects for insert to authenticated
+	with check (bucket_id = 'post-media' and (storage.foldername(name))[1] = (select auth.uid())::text);
 
 drop policy if exists "Post images are publicly readable" on storage.objects;
 drop policy if exists "Signed-in members can read post images" on storage.objects;
@@ -114,6 +124,10 @@ create policy "Visitors read public community post images"
 insert into storage.buckets (id, name, public)
 values ('profile-media', 'profile-media', true)
 on conflict (id) do update set public = true;
+drop policy if exists "Users upload their own profile pictures" on storage.objects;
+create policy "Users upload their own profile pictures"
+	on storage.objects for insert to authenticated
+	with check (bucket_id = 'profile-media' and (storage.foldername(name))[1] = (select auth.uid())::text);
 drop policy if exists "Profile pictures are publicly readable" on storage.objects;
 create policy "Profile pictures are publicly readable"
 	on storage.objects for select
