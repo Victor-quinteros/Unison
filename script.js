@@ -1,4 +1,4 @@
-	// 01. Application state
+// 01. Application state
 	const form = document.querySelector("#post-form");
 	const input = document.querySelector("#post-text");
 	const feed = document.querySelector("#feed");
@@ -23,6 +23,7 @@
 	let signUpMode = false;
 	let selectedPhoto = null;
 	let activeCommentPost = null;
+	let feedRequestId = 0;
 	let appearance = { accent: "coral", theme: "light", compact: false };
 
 	function showToast(message) {
@@ -227,8 +228,11 @@
 
 	async function refreshSupabaseFeed() {
 		if (!window.UnisonApi.isConfigured()) return;
+		const requestId = ++feedRequestId;
 		const scope = currentView === "townsquare" ? "townsquare" : currentView === "saved" ? "saved" : currentFeed === "following" ? "following" : "home";
-		feedPosts = await window.UnisonApi.listPosts({ scope, search: search.value.trim() });
+		const results = await window.UnisonApi.listPosts({ scope, search: search.value.trim() });
+		if (requestId !== feedRequestId) return;
+		feedPosts = results;
 		renderFeed();
 	}
 
@@ -282,10 +286,44 @@
 		document.querySelector("#auth-name-field").hidden = !createAccount;
 		document.querySelector("#auth-handle").required = createAccount;
 		document.querySelector("#auth-name").required = createAccount;
+		document.querySelector("#auth-password").autocomplete = createAccount ? "new-password" : "current-password";
 	}
 
-	document.querySelector("#account-button").addEventListener("click", () => openAuthDialog());
+	document.querySelector("#account-button").addEventListener("click", () => {
+		const user = window.UnisonAuth.getUser();
+		if (user) {
+			setAuthMode(false);
+			document.querySelector("#auth-title").textContent = "Your account";
+			document.querySelector("#auth-message").textContent = `Signed in as ${user.email}.`;
+			document.querySelector("#auth-email").closest(".dialog-field").hidden = true;
+			document.querySelector("#auth-password").closest(".dialog-field").hidden = true;
+			document.querySelector("#auth-submit").hidden = true;
+			document.querySelector("#auth-mode-toggle").hidden = true;
+			document.querySelector("#auth-signout").hidden = false;
+			if (!authDialog.open) authDialog.showModal();
+			return;
+		}
+		document.querySelector("#auth-email").closest(".dialog-field").hidden = false;
+		document.querySelector("#auth-password").closest(".dialog-field").hidden = false;
+		document.querySelector("#auth-submit").hidden = false;
+		document.querySelector("#auth-mode-toggle").hidden = false;
+		setAuthMode(false);
+		openAuthDialog();
+	});
 	document.querySelectorAll("[data-close-dialog]").forEach((button) => button.addEventListener("click", () => button.closest("dialog").close()));
+	document.querySelector("#auth-password-toggle").addEventListener("click", (event) => {
+		const password = document.querySelector("#auth-password");
+		const visible = password.type === "password";
+		password.type = visible ? "text" : "password";
+		event.currentTarget.textContent = visible ? "Hide" : "Show";
+		event.currentTarget.setAttribute("aria-pressed", String(visible));
+	});
+	authDialog.addEventListener("close", () => {
+		document.querySelector("#auth-password").type = "password";
+		const toggle = document.querySelector("#auth-password-toggle");
+		toggle.textContent = "Show";
+		toggle.setAttribute("aria-pressed", "false");
+	});
 	document.querySelector("#auth-mode-toggle").addEventListener("click", () => setAuthMode(!signUpMode));
 	document.querySelector("#auth-form").addEventListener("submit", async (event) => {
 		event.preventDefault();
@@ -302,7 +340,10 @@
 					displayName: document.querySelector("#auth-name").value.trim()
 				});
 				if (result.needsEmailConfirmation) {
-					showToast("Check your email to confirm your account, then sign in.");
+					setAuthMode(false);
+					document.querySelector("#auth-password").value = "";
+					document.querySelector("#auth-message").textContent = "Check your email for a confirmation link. Once confirmed, sign in with your email and password.";
+					showToast("Confirmation email sent. Check your inbox, then sign in.");
 					return;
 				}
 			} else {
@@ -323,6 +364,12 @@
 		try {
 			await window.UnisonAuth.signOut();
 			updateAccount(null);
+			document.querySelector("#auth-email").closest(".dialog-field").hidden = false;
+			document.querySelector("#auth-password").closest(".dialog-field").hidden = false;
+			document.querySelector("#auth-submit").hidden = false;
+			document.querySelector("#auth-mode-toggle").hidden = false;
+			setAuthMode(false);
+			authDialog.close();
 			setView("home");
 			showToast("You are signed out.");
 		} catch (error) {
@@ -593,12 +640,14 @@
 		if (!text) return showToast("Write a message before sharing.");
 		if (window.UnisonApi.isConfigured() && !requireSignedIn()) return;
 
+		const user = window.UnisonAuth.getUser();
+		const metadata = user?.user_metadata || {};
 		const postData = {
 			id: crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`,
-			author: "Alex Morgan",
-			handle: "@alexm",
+			author: metadata.display_name || user?.email?.split("@")[0] || "Alex Morgan",
+			handle: metadata.handle ? `@${metadata.handle}` : user ? `@${user.email?.split("@")[0]}` : "@alexm",
 			time: "now",
-			avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&q=80",
+			avatar: metadata.avatar_url || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&q=80",
 			text,
 			search: text,
 			likes: 0,
@@ -619,8 +668,7 @@
 			selectedPhoto = null;
 			photoInput.value = "";
 			document.querySelector("#photo-preview").hidden = true;
-			currentView = "home";
-			currentFeed = "all";
+			if (currentView !== "townsquare") setView("home");
 			applyFilters();
 			showToast(window.UnisonApi.isConfigured() ? "Post published." : "Post added for this session.");
 		} catch (error) {
