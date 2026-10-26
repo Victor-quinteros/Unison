@@ -47,6 +47,7 @@
 	let previousProfileReturnView = "home";
 	let previousProfileReturnScrollY = 0;
 	const fallbackAvatar = "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&q=80";
+	const profileEditorAvatarPlaceholder = `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" rx="50" fill="#e8eef5"/><circle cx="50" cy="37" r="18" fill="#9aaabd"/><path d="M17 91c3-21 16-32 33-32s30 11 33 32" fill="#9aaabd"/></svg>')}`;
 	const profileStickerGlyphs = { star: "⭐", flower: "🌸", sparkle: "✨", fire: "🔥" };
 	function applyProfileDecoration(frame, border = "none", sticker = "none") {
 		if (!frame) return;
@@ -71,7 +72,7 @@
 		document.querySelector("#profile-others-name").textContent = name.value.trim() || "Your name";
 		document.querySelector("#profile-others-handle").textContent = handle.textContent || "@member";
 		document.querySelector("#profile-others-bio").textContent = bio.value.trim();
-		document.querySelector("#profile-others-avatar").src = document.querySelector("#profile-avatar-preview").src || fallbackAvatar;
+		document.querySelector("#profile-others-avatar").src = document.querySelector("#profile-avatar-preview").src || profileEditorAvatarPlaceholder;
 		applyProfileDecoration(document.querySelector("#profile-others-frame"), document.querySelector("#profile-border").value, document.querySelector("#profile-sticker").value);
 		const coverPreview = document.querySelector("#profile-cover-preview-image");
 		const cover = document.querySelector("#profile-others-cover");
@@ -150,7 +151,8 @@
 		name.textContent = displayName;
 		handle.textContent = profile?.handle ? `@${profile.handle}` : metadata.handle ? `@${metadata.handle}` : user ? user.email : "@alexm";
 		const avatar = profile?.avatar_url || metadata.avatar_url || fallbackAvatar;
-		document.querySelectorAll("#account-button .avatar, .account .avatar, #composer-avatar, #profile-avatar-preview").forEach((image) => { image.src = avatar; });
+		document.querySelectorAll("#account-button .avatar, .account .avatar, #composer-avatar").forEach((image) => { image.src = avatar; });
+		document.querySelector("#profile-avatar-preview").src = profile?.avatar_url || metadata.avatar_url || profileEditorAvatarPlaceholder;
 		document.querySelector("#auth-signout").hidden = !user;
 	}
 
@@ -162,7 +164,7 @@
 			document.querySelector("#profile-display-name").value = currentProfile.display_name || "";
 			document.querySelector("#profile-handle-display").textContent = currentProfile.handle ? `@${currentProfile.handle}` : "@member";
 			document.querySelector("#profile-bio").value = currentProfile.bio || "";
-			document.querySelector("#profile-avatar-preview").src = currentProfile.avatar_url || fallbackAvatar;
+			document.querySelector("#profile-avatar-preview").src = currentProfile.avatar_url || profileEditorAvatarPlaceholder;
 			setProfileCoverPreview(currentProfile.profile_background_url || "");
 			document.querySelector("#profile-border").value = currentProfile.avatar_border || "none";
 			document.querySelector("#profile-sticker").value = currentProfile.profile_sticker || "none";
@@ -635,6 +637,7 @@
 
 	function updatePrivateAccess() {
 		const signedOut = !window.UnisonAuth.getUser();
+		form.hidden = signedOut;
 		document.querySelector("#home").classList.toggle("signed-out", signedOut);
 		document.body.classList.toggle("signed-out", signedOut);
 		document.body.classList.toggle("signed-in", !signedOut);
@@ -942,7 +945,7 @@
 			if (!updatedProfile) throw new Error("Supabase did not return the updated profile. Check that your profile row exists and try again.");
 			currentProfile = updatedProfile;
 			updateAccount(window.UnisonAuth.getUser(), currentProfile);
-			document.querySelector("#profile-avatar-preview").src = currentProfile.avatar_url || fallbackAvatar;
+			document.querySelector("#profile-avatar-preview").src = currentProfile.avatar_url || profileEditorAvatarPlaceholder;
 			applyProfileDecoration(document.querySelector("#profile-avatar-frame"), currentProfile.avatar_border, currentProfile.profile_sticker);
 			document.querySelector("#profile-avatar-file").value = "";
 			document.querySelector("#profile-background-file").value = "";
@@ -1138,6 +1141,10 @@
 		refreshSupabaseFeed().catch((error) => showToast(error.message));
 	}));
 	document.querySelectorAll("[data-focus-composer]").forEach((button) => button.addEventListener("click", () => {
+		if (!window.UnisonAuth.getUser()) {
+			openAuthDialog("Sign in to create a post.");
+			return;
+		}
 		input.focus();
 		document.querySelector(".composer").scrollIntoView({ behavior: "smooth", block: "center" });
 	}));
