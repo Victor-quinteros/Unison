@@ -72,7 +72,7 @@
 		name.textContent = displayName;
 		handle.textContent = profile?.handle ? `@${profile.handle}` : metadata.handle ? `@${metadata.handle}` : user ? user.email : "@alexm";
 		const avatar = profile?.avatar_url || metadata.avatar_url || fallbackAvatar;
-		document.querySelectorAll("#account-button .avatar, .account .avatar, #composer-avatar").forEach((image) => { image.src = avatar; });
+		document.querySelectorAll("#account-button .avatar, .account .avatar, #composer-avatar, #profile-avatar-preview").forEach((image) => { image.src = avatar; });
 		document.querySelector("#auth-signout").hidden = !user;
 	}
 
@@ -80,6 +80,13 @@
 		if (!window.UnisonAuth.getUser() || !window.UnisonApi.isConfigured()) return null;
 		currentProfile = await window.UnisonApi.getMyProfile();
 		updateAccount(window.UnisonAuth.getUser(), currentProfile);
+		if (currentProfile) {
+			document.querySelector("#profile-display-name").value = currentProfile.display_name || "";
+			document.querySelector("#profile-handle").value = currentProfile.handle || "";
+			document.querySelector("#profile-bio").value = currentProfile.bio || "";
+			document.querySelector("#profile-avatar-preview").src = currentProfile.avatar_url || fallbackAvatar;
+			document.querySelector("#my-profile-email").textContent = window.UnisonAuth.getUser().email || "";
+		}
 		return currentProfile;
 	}
 
@@ -454,18 +461,24 @@
 	}
 
 	function setView(view) {
+		if (view === "my-profile" && !window.UnisonApi.isConfigured()) {
+			showToast("Connect Supabase to manage your profile.");
+			return;
+		}
 		if (currentView === "search" && view !== "search" && location.hash.startsWith("#search/")) {
 			history.pushState({ view }, "", "#home");
 			lastRouteHash = location.hash;
 		}
 		currentView = view;
 		currentFeed = view === "my-posts" ? "mine" : "all";
-		viewTitle.textContent = view === "search" ? "Search results" : view === "my-posts" ? "My posts" : view === "saved" ? "Saved" : view === "explore" ? "Explore" : view === "townsquare" ? "Townsquare" : "Home";
-		pageSubtitle.textContent = view === "search" ? `Posts matching “${search.value.trim()}”` : view === "my-posts" ? "Everything you have shared with your circle." : view === "townsquare" ? "Your neighborhood, one conversation at a time." : "Good things happen when we find each other.";
-		document.querySelector("#today-label").textContent = view === "search" ? "SEARCH YOUR CIRCLE" : "YOUR PEOPLE, YOUR PACE";
+		viewTitle.textContent = view === "search" ? "Search results" : view === "my-profile" ? "My Profile" : view === "my-posts" ? "My posts" : view === "saved" ? "Saved" : view === "explore" ? "Explore" : view === "townsquare" ? "Townsquare" : "Home";
+		pageSubtitle.textContent = view === "search" ? `Posts matching “${search.value.trim()}”` : view === "my-profile" ? "Manage your picture and the information people see on your profile." : view === "my-posts" ? "Everything you have shared with your circle." : view === "townsquare" ? "Your neighborhood, one conversation at a time." : "Good things happen when we find each other.";
+		document.querySelector("#today-label").textContent = view === "search" ? "SEARCH YOUR CIRCLE" : view === "my-profile" ? "YOUR PUBLIC PROFILE" : "YOUR PEOPLE, YOUR PACE";
 		document.querySelector("#home").classList.toggle("search-mode", view === "search");
+		document.querySelector("#home").classList.toggle("profile-mode", view === "my-profile");
+		document.querySelector("#my-profile-page").hidden = view !== "my-profile";
 		townSquareIntro.hidden = view !== "townsquare";
-		feedControls.hidden = view === "townsquare" || view === "search";
+		feedControls.hidden = view === "townsquare" || view === "search" || view === "my-profile";
 		input.placeholder = view === "townsquare" ? "Share something happening nearby..." : "What's on your mind, Alex?";
 		document.querySelectorAll("[data-view]").forEach((button) => button.classList.toggle("active", button.dataset.view === view));
 		document.querySelectorAll("[data-filter]").forEach((button) => {
@@ -481,6 +494,14 @@
 		}
 		if (view === "my-posts" && window.UnisonApi.isConfigured() && !window.UnisonAuth.getUser()) {
 			openAuthDialog("Sign in to see your posts.");
+			return;
+		}
+		if (view === "my-profile") {
+			if (!window.UnisonAuth.getUser()) {
+				openAuthDialog("Sign in to view and edit your profile.");
+				return;
+			}
+			loadMyProfile().catch((error) => showToast(error.message));
 			return;
 		}
 		refreshSupabaseFeed().catch((error) => showToast(error.message));
@@ -536,15 +557,7 @@
 			document.querySelector("#auth-password").closest(".dialog-field").hidden = true;
 			document.querySelector("#auth-submit").hidden = true;
 			document.querySelector("#auth-mode-toggle").hidden = true;
-			document.querySelector("#profile-editor").hidden = false;
 			document.querySelector("#auth-signout").hidden = false;
-			loadMyProfile().then((profile) => {
-				if (!profile) return;
-				document.querySelector("#profile-display-name").value = profile.display_name || "";
-				document.querySelector("#profile-handle").value = profile.handle || "";
-				document.querySelector("#profile-bio").value = profile.bio || "";
-				document.querySelector("#profile-avatar-preview").src = profile.avatar_url || fallbackAvatar;
-			}).catch((error) => showToast(error.message));
 			if (!authDialog.open) authDialog.showModal();
 			return;
 		}
@@ -552,7 +565,6 @@
 		document.querySelector("#auth-password").closest(".dialog-field").hidden = false;
 		document.querySelector("#auth-submit").hidden = false;
 		document.querySelector("#auth-mode-toggle").hidden = false;
-		document.querySelector("#profile-editor").hidden = true;
 		setAuthMode(false);
 		openAuthDialog();
 	});
@@ -661,7 +673,6 @@
 			document.querySelector("#auth-password").closest(".dialog-field").hidden = false;
 			document.querySelector("#auth-submit").hidden = false;
 			document.querySelector("#auth-mode-toggle").hidden = false;
-			document.querySelector("#profile-editor").hidden = true;
 			setAuthMode(false);
 			authDialog.close();
 			setView("home");

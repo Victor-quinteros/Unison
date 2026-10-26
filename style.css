@@ -125,6 +125,9 @@ body[data-theme="dim"][data-accent="coral"] { --accent: #ff927e; --accent-soft: 
 /* 05. Feed, stories, and post cards */
 main { min-width: 0; padding: 9px 0 60px; }
 main.search-mode .composer, main.search-mode .stories, main.search-mode .feed-controls { display: none; }
+main.profile-mode > :not(.page-heading):not(#my-profile-page) { display: none; }
+.my-profile-page { gap: 14px; padding: 18px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); box-shadow: var(--shadow); }
+.my-profile-page[hidden] { display: none; }
 .search-people-section { display: grid; gap: 8px; margin: 0 0 16px; }
 .search-people-section[hidden] { display: none; }
 .search-results-heading { margin: 0; font-family: var(--display); font-size: 13px; }
