@@ -9,7 +9,7 @@
 	<link rel="preconnect" href="https://fonts.googleapis.com">
 	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 	<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
-	<link rel="stylesheet" href="style.css?v=profile-preview-21">
+	<link rel="stylesheet" href="style.css?v=profile-post-dividers-22">
 </head>
 <body>
 	<!-- 02. Global navigation -->
@@ -99,7 +99,7 @@
 				<h3 class="profile-customization-heading">Customize your profile</h3>
 				<p class="profile-customization-help">Choose an avatar border and sticker. Add a background photo above to personalize your profile page.</p>
 				<fieldset class="profile-customization"><legend>Profile customization</legend><label class="dialog-field">Avatar border<select id="profile-border"><option value="none">No border</option><option value="coral">Coral</option><option value="gold">Gold</option><option value="rainbow">Rainbow</option></select></label><label class="dialog-field">Profile sticker<select id="profile-sticker"><option value="none">No sticker</option><option value="star">⭐ Star</option><option value="flower">🌸 Flower</option><option value="sparkle">✨ Sparkle</option><option value="fire">🔥 Fire</option></select></label></fieldset>
-				<section class="profile-others-preview" aria-labelledby="profile-others-heading"><h3 id="profile-others-heading">Profile appears to others</h3><div class="profile-others-card"><div class="profile-others-cover" id="profile-others-cover" hidden><img id="profile-others-cover-image" alt=""></div><div class="profile-others-identity"><div class="profile-avatar-frame" id="profile-others-frame" data-border="none" data-sticker="none"><img class="avatar" id="profile-others-avatar" alt=""><span class="profile-sticker" aria-hidden="true" hidden></span></div><div><strong id="profile-others-name">Your name</strong><span id="profile-others-handle">@member</span></div></div><p id="profile-others-bio"></p></div></section>
+				<section class="profile-others-preview" aria-labelledby="profile-others-heading"><h3 id="profile-others-heading">Profile appears to others</h3><div class="profile-others-card"><div class="profile-others-cover" id="profile-others-cover" hidden><img id="profile-others-cover-image" alt=""></div><div class="profile-others-identity"><div class="profile-avatar-frame" id="profile-others-frame" data-border="none" data-sticker="none"><img class="avatar" id="profile-others-avatar" alt=""><span class="profile-sticker" aria-hidden="true" hidden></span></div><div><strong id="profile-others-name">Your name</strong><span id="profile-others-handle">@member</span></div></div><p id="profile-others-bio"></p></div><button class="profile-others-button" id="profile-view-as-others" type="button"><span>Open the profile page others see</span><span aria-hidden="true">↗</span></button></section>
 				<button class="dialog-primary" id="profile-save" type="button">Save profile</button>
 				<p class="profile-save-status" id="profile-save-status" role="status" aria-live="polite" hidden></p>
 			</section>
@@ -287,6 +287,6 @@
 	<script src="supabase-config.js"></script>
 	<script src="posts.js"></script>
 	<script src="api.js?v=profile-media-url-25"></script>
-	<script src="script.js?v=profile-avatar-placeholder-26"></script>
+	<script src="script.js?v=profile-public-view-button-27"></script>
 </body>
 </html>

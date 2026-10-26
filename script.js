@@ -441,6 +441,9 @@
 				profilePosts = matchingPosts;
 			}
 			if (requestId !== profileRequestId) return;
+			if (profile.id && profile.id === window.UnisonAuth.getUser()?.id) {
+				profilePosts = profilePosts.filter((post) => post.visibility === "public");
+			}
 			name.textContent = profile.display_name || "Unison member";
 			handle.textContent = profile.handle ? `@${profile.handle}` : "@member";
 			bio.textContent = profile.bio || "";
@@ -918,6 +921,20 @@
 	});
 	document.querySelector("#profile-border").addEventListener("change", (event) => { applyProfileDecoration(document.querySelector("#profile-avatar-frame"), event.currentTarget.value, document.querySelector("#profile-sticker").value); renderMyProfilePreview(); });
 	document.querySelector("#profile-sticker").addEventListener("change", (event) => { applyProfileDecoration(document.querySelector("#profile-avatar-frame"), document.querySelector("#profile-border").value, event.currentTarget.value); renderMyProfilePreview(); });
+	document.querySelector("#profile-view-as-others").addEventListener("click", async (event) => {
+		if (!requireSignedIn()) return;
+		const button = event.currentTarget;
+		button.disabled = true;
+		try {
+			const profile = currentProfile?.id ? currentProfile : await loadMyProfile();
+			if (!profile?.id) throw new Error("Your profile is not ready yet. Try again in a moment.");
+			await openPublicProfile(profile.id, profile.handle);
+		} catch (error) {
+			showToast(profileErrorMessage(error));
+		} finally {
+			button.disabled = false;
+		}
+	});
 	document.querySelector("#profile-save").addEventListener("click", async (event) => {
 		const button = event.currentTarget;
 		const status = document.querySelector("#profile-save-status");
