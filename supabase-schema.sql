@@ -391,6 +391,17 @@ drop policy if exists "Profile pictures are publicly readable" on storage.object
 create policy "Profile pictures are publicly readable"
 	on storage.objects for select
 	using (bucket_id = 'profile-media');
+drop policy if exists "Legacy profile pictures in post media are publicly readable" on storage.objects;
+create policy "Legacy profile pictures in post media are publicly readable"
+	on storage.objects for select to anon, authenticated
+	using (
+		bucket_id = 'post-media'
+		and exists (
+			select 1 from public.profiles
+			where profiles.avatar_url = storage.objects.name
+				or profiles.avatar_url like ('%/object/public/post-media/' || storage.objects.name)
+		)
+	);
 drop policy if exists "Users upload their own profile pictures" on storage.objects;
 create policy "Users upload their own profile pictures"
 	on storage.objects for insert to authenticated

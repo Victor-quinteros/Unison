@@ -135,16 +135,26 @@ async function privateMediaUrl(path) {
 	}
 }
 
-async function profileAvatarUrl(value) {
-	const source = String(value || "");
+function publicProfileMediaUrl(value) {
+	const source = String(value || "").trim();
 	if (!source) return "";
-	const postMediaPath = storageObjectPath("post-media", source);
-	if (!postMediaPath) return source;
-	if (!source.startsWith("http") && /(^|\/)profile-[^/]+$/i.test(source)) {
-		const profilePath = source.split("/").map(encodeURIComponent).join("/");
-		return `${supabaseUrl}/storage/v1/object/public/profile-media/${profilePath}`;
+	let path = storageObjectPath("profile-media", source);
+	if (!path && !source.startsWith("http")) {
+		const rawPath = source.replace(/^\/+/, "");
+		if (rawPath.startsWith("profile-media/")) path = rawPath.slice("profile-media/".length);
 	}
-	return privateMediaUrl(postMediaPath);
+	if (!path) return source.startsWith("http") && source.includes("/profile-media/") ? source : "";
+	const encodedPath = path.split("/").map(encodeURIComponent).join("/");
+	return `${supabaseUrl}/storage/v1/object/public/profile-media/${encodedPath}`;
+}
+
+async function profileAvatarUrl(value) {
+	const source = String(value || "").trim();
+	if (!source) return "";
+	const profileMediaUrl = publicProfileMediaUrl(source);
+	if (profileMediaUrl) return profileMediaUrl;
+	const oldPostMediaPath = storageObjectPath("post-media", source);
+	return oldPostMediaPath ? privateMediaUrl(oldPostMediaPath) : source;
 }
 
 async function mapPost(row) {
@@ -345,7 +355,11 @@ window.UnisonApi = Object.freeze({
 		const params = new URLSearchParams({ select: "id,handle,display_name,avatar_url,profile_background_url,bio,avatar_border,profile_sticker", id: `eq.${session.user.id}`, limit: "1" });
 		const rows = await supabaseRequest(`profiles?${params}`, { auth: true });
 		if (!rows[0]) return null;
-		return { ...rows[0], avatar_url: await profileAvatarUrl(rows[0].avatar_url).catch(() => "") };
+		return {
+			...rows[0],
+			avatar_url: await profileAvatarUrl(rows[0].avatar_url).catch(() => ""),
+			profile_background_url: publicProfileMediaUrl(rows[0].profile_background_url) || rows[0].profile_background_url || ""
+		};
 	},
 	async getPublicProfile(userId) {
 		const auth = Boolean(supabaseSession);
@@ -353,7 +367,11 @@ window.UnisonApi = Object.freeze({
 		const params = new URLSearchParams({ select: "id,handle,display_name,avatar_url,profile_background_url,bio,avatar_border,profile_sticker", id: `eq.${userId}`, limit: "1" });
 		const rows = await supabaseRequest(`profiles?${params}`, { auth });
 		if (!rows[0]) return null;
-		return { ...rows[0], avatar_url: await profileAvatarUrl(rows[0].avatar_url).catch(() => "") };
+		return {
+			...rows[0],
+			avatar_url: await profileAvatarUrl(rows[0].avatar_url).catch(() => ""),
+			profile_background_url: publicProfileMediaUrl(rows[0].profile_background_url) || rows[0].profile_background_url || ""
+		};
 	},
 	async listConversations() {
 		const session = await requireSession();
