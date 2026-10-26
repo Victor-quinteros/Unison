@@ -9,7 +9,7 @@
 	<link rel="preconnect" href="https://fonts.googleapis.com">
 	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 	<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
-	<link rel="stylesheet" href="style.css?v=profile-style-17">
+	<link rel="stylesheet" href="style.css?v=profile-cover-19">
 </head>
 <body>
 	<!-- 02. Global navigation -->
@@ -92,10 +92,12 @@
 			</section>
 			<section class="profile-editor my-profile-page" id="my-profile-page" hidden aria-label="Edit your profile">
 				<div class="profile-photo-row"><div class="profile-avatar-frame" id="profile-avatar-frame" data-border="none" data-sticker="none"><img id="profile-avatar-preview" class="avatar profile-avatar-preview" alt="Profile picture preview"><span class="profile-sticker" id="profile-avatar-sticker" aria-hidden="true" hidden></span></div><label class="dialog-field">Profile picture<input id="profile-avatar-file" type="file" accept="image/*"></label></div>
-				<p class="dialog-copy" id="my-profile-email"></p>
+				<div class="profile-cover-editor"><div class="profile-cover-preview" id="profile-cover-preview"><img id="profile-cover-preview-image" alt="Profile background preview" hidden><span id="profile-cover-placeholder">Your profile background</span></div><label class="dialog-field">Background photo<input id="profile-background-file" type="file" accept="image/*"></label></div>
 				<label class="dialog-field">Display name<input id="profile-display-name" type="text" maxlength="60" autocomplete="name"></label>
-				<label class="dialog-field">Handle<input id="profile-handle" type="text" maxlength="24" autocomplete="username" pattern="[A-Za-z0-9_]+"></label>
+				<button class="profile-handle-setting" id="profile-handle-link" type="button" aria-label="Change handle in account settings"><span>Your handle</span><strong id="profile-handle-display">@member</strong><span>Change in Account settings</span></button>
 				<label class="dialog-field">About you<textarea id="profile-bio" maxlength="240" rows="3" placeholder="A little about yourself"></textarea></label>
+				<h3 class="profile-customization-heading">Customize your profile</h3>
+				<p class="profile-customization-help">Choose an avatar border and sticker. Add a background photo above to personalize your profile page.</p>
 				<fieldset class="profile-customization"><legend>Profile customization</legend><label class="dialog-field">Avatar border<select id="profile-border"><option value="none">No border</option><option value="coral">Coral</option><option value="gold">Gold</option><option value="rainbow">Rainbow</option></select></label><label class="dialog-field">Profile sticker<select id="profile-sticker"><option value="none">No sticker</option><option value="star">⭐ Star</option><option value="flower">🌸 Flower</option><option value="sparkle">✨ Sparkle</option><option value="fire">🔥 Fire</option></select></label></fieldset>
 				<button class="dialog-primary" id="profile-save" type="button">Save profile</button>
 			</section>
@@ -130,11 +132,13 @@
 					</div>
 					<label class="density-row" for="compact-mode"><span>Compact posts</span><input class="switch" id="compact-mode" type="checkbox" role="switch"></label>
 				</section>
-				<section class="settings-panel account-settings" aria-labelledby="account-settings-heading">
-					<h2 id="account-settings-heading">Account</h2>
-					<p id="settings-account-email"></p>
-					<button class="dialog-primary" id="settings-profile" type="button">Manage my profile</button>
-				</section>
+			</section>
+			<section class="account-page settings-panel" id="account-page" hidden aria-labelledby="account-page-heading">
+				<h2 id="account-page-heading">Account details</h2>
+				<p>Manage the sign-in email and handle associated with your account.</p>
+				<label class="dialog-field">Email<input id="account-email" type="email" readonly aria-describedby="account-email-note"></label>
+				<p class="account-note" id="account-email-note">Your email is managed by your sign-in provider.</p>
+				<form id="account-handle-form"><label class="dialog-field">Handle<input id="account-handle" type="text" maxlength="24" autocomplete="username" pattern="[A-Za-z0-9_]+" required></label><p class="account-note">Use 2–24 letters, numbers, or underscores. Your handle is visible on your profile.</p><button class="dialog-primary" id="account-handle-save" type="submit">Save handle</button></form>
 			</section>
 
 			<form class="composer" id="post-form">
@@ -268,6 +272,7 @@
 		<div class="dialog-content">
 			<button class="dialog-close" type="button" data-close-dialog aria-label="Close">×</button>
 			<p class="dialog-eyebrow">UNISON MEMBER</p>
+			<div class="public-profile-cover" id="public-profile-cover" hidden><img id="public-profile-cover-image" alt=""></div>
 			<div class="public-profile-header"><div class="profile-avatar-frame public-profile-frame" id="public-profile-frame" data-border="none" data-sticker="none"><img class="avatar public-profile-avatar" id="public-profile-avatar" alt=""><span class="profile-sticker" id="public-profile-sticker" aria-hidden="true" hidden></span></div><div><h2 id="public-profile-name">Member profile</h2><p class="profile-handle" id="public-profile-handle"></p></div></div>
 			<p class="public-profile-bio" id="public-profile-bio"></p>
 			<button class="follow profile-follow" id="public-profile-follow" type="button" hidden>Follow</button>
@@ -280,7 +285,7 @@
 	<!-- 07. Application scripts -->
 	<script src="supabase-config.js"></script>
 	<script src="posts.js"></script>
-	<script src="api.js?v=profile-style-17"></script>
-	<script src="script.js?v=profile-style-17"></script>
+	<script src="api.js?v=profile-cover-19"></script>
+	<script src="script.js?v=profile-cover-19"></script>
 </body>
 </html>

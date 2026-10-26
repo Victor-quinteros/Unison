@@ -6,6 +6,7 @@ create table if not exists public.profiles (
 	handle text not null unique,
 	display_name text not null default '',
 	avatar_url text,
+	profile_background_url text,
 	avatar_border text not null default 'none',
 	profile_sticker text not null default 'none',
 	created_at timestamptz not null default now()
@@ -13,6 +14,7 @@ create table if not exists public.profiles (
 alter table public.profiles add column if not exists bio text not null default '';
 alter table public.profiles add column if not exists avatar_border text not null default 'none';
 alter table public.profiles add column if not exists profile_sticker text not null default 'none';
+alter table public.profiles add column if not exists profile_background_url text;
 alter table public.profiles drop constraint if exists profiles_avatar_border_check;
 alter table public.profiles add constraint profiles_avatar_border_check check (avatar_border in ('none', 'coral', 'gold', 'rainbow'));
 alter table public.profiles drop constraint if exists profiles_profile_sticker_check;

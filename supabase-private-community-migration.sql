@@ -3,6 +3,7 @@
 
 alter table public.profiles add column if not exists avatar_border text not null default 'none';
 alter table public.profiles add column if not exists profile_sticker text not null default 'none';
+alter table public.profiles add column if not exists profile_background_url text;
 alter table public.profiles drop constraint if exists profiles_avatar_border_check;
 alter table public.profiles add constraint profiles_avatar_border_check check (avatar_border in ('none', 'coral', 'gold', 'rainbow'));
 alter table public.profiles drop constraint if exists profiles_profile_sticker_check;

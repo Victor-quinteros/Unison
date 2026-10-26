@@ -148,6 +148,7 @@ main.search-mode .composer, main.search-mode .stories, main.search-mode .feed-co
 main.profile-mode > :not(.page-heading):not(#my-profile-page) { display: none; }
 main.messages-mode > :not(.page-heading):not(#messages-page) { display: none; }
 main.settings-mode > :not(.page-heading):not(#settings-page) { display: none; }
+main.account-mode > :not(.page-heading):not(#account-page) { display: none; }
 .my-profile-page { gap: 14px; padding: 18px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); box-shadow: var(--shadow); }
 .my-profile-page[hidden] { display: none; }
 .settings-page { display: grid; gap: 12px; }
@@ -155,6 +156,16 @@ main.settings-mode > :not(.page-heading):not(#settings-page) { display: none; }
 .settings-panel { display: grid; gap: 9px; padding: 18px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); box-shadow: var(--shadow); }
 .settings-panel h2 { margin: 0; font-family: var(--display); font-size: 14px; }
 .settings-panel > p { margin: 0; color: var(--muted); font-size: 11px; line-height: 1.5; }
+.account-page { max-width: 560px; }
+.account-page[hidden] { display: none; }
+.account-page input { width: 100%; height: 38px; padding: 0 10px; border: 1px solid var(--line); border-radius: 6px; background: var(--surface-soft); color: var(--ink); font: inherit; font-size: 12px; }
+.account-page input[readonly] { opacity: .75; }
+.account-note { margin: -4px 0 0; color: var(--muted); font-size: 10px; line-height: 1.45; }
+#account-handle-form { display: grid; gap: 9px; margin-top: 8px; }
+.profile-handle-setting { display: grid; justify-items: start; gap: 4px; width: fit-content; padding: 0; border: 0; background: transparent; color: var(--accent); text-align: left; }
+.profile-handle-setting span { color: var(--muted); font-size: 10px; }
+.profile-handle-setting strong { font-size: 13px; }
+.profile-handle-setting:hover strong { text-decoration: underline; }
 .appearance-settings { max-width: 520px; }
 .appearance-settings .segmented { max-width: 240px; }
 .account-settings { grid-template-columns: 1fr auto; align-items: center; }
@@ -371,7 +382,13 @@ h1 { margin-bottom: 3px; font-family: var(--display); font-size: 20px; font-weig
 .profile-photo-row { display: grid; grid-template-columns: 58px minmax(0, 1fr); align-items: center; gap: 12px; }
 .profile-photo-row .profile-avatar-frame { width: 54px; height: 54px; }
 .profile-avatar-preview { object-fit: cover; }
-.profile-customization { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin: 0; padding: 12px; border: 1px solid var(--line); border-radius: 7px; }
+.profile-cover-editor { display: grid; grid-template-columns: minmax(0, 1fr) minmax(140px, .8fr); align-items: end; gap: 12px; }
+.profile-cover-preview { display: grid; min-height: 96px; place-items: center; overflow: hidden; border: 1px dashed var(--line); border-radius: 7px; background: var(--surface-soft); color: var(--muted); font-size: 11px; }
+.profile-cover-preview img { width: 100%; height: 120px; object-fit: cover; }
+.profile-cover-preview.has-image { border-style: solid; }
+.profile-customization { display: grid !important; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin: 0; padding: 14px; border: 1px solid var(--line); border-radius: 7px; background: var(--surface-soft); }
+.profile-customization-heading { margin: 2px 0 -8px; color: var(--ink); font-family: var(--display); font-size: 14px; }
+.profile-customization-help { margin: 0; color: var(--muted); font-size: 11px; line-height: 1.45; }
 .profile-customization legend { padding: 0 5px; color: var(--ink); font-size: 11px; font-weight: 700; }
 .profile-customization select { width: 100%; min-height: 36px; padding: 0 8px; border: 1px solid var(--line); border-radius: 6px; background: var(--surface-soft); color: var(--ink); font: inherit; font-size: 11px; }
 .profile-editor textarea { width: 100%; min-height: 76px; padding: 9px 10px; resize: vertical; border: 1px solid var(--line); border-radius: 6px; background: var(--surface-soft); color: var(--ink); font: inherit; font-size: 12px; }
@@ -391,6 +408,9 @@ h1 { margin-bottom: 3px; font-family: var(--display); font-size: 20px; font-weig
 .comment-form { display: flex; gap: 8px; align-items: center; }
 .comment-form .dialog-primary { flex: 0 0 auto; }
 .profile-dialog { width: min(560px, calc(100% - 28px)); }
+.public-profile-cover { height: 150px; overflow: hidden; border-radius: 8px; background: var(--surface-soft); }
+.public-profile-cover[hidden] { display: none; }
+.public-profile-cover img { display: block; width: 100%; height: 100%; object-fit: cover; }
 .public-profile-header { display: flex; align-items: center; gap: 13px; padding: 5px 0; }
 .public-profile-frame { width: 64px; height: 64px; }
 .public-profile-header h2 { margin: 0 0 4px; }
@@ -454,6 +474,7 @@ body.compact .post-copy { margin: 8px 0; }
 	.message-thread, .message-thread-content { min-height: 360px; }
 	.account-settings { grid-template-columns: 1fr; }
 	.profile-customization { grid-template-columns: 1fr; }
+	.profile-cover-editor { grid-template-columns: 1fr; align-items: start; }
 	.account-settings h2, .account-settings p, .account-settings .dialog-primary { grid-column: 1; grid-row: auto; }
 	.composer-footer { margin-left: 46px; gap: 6px; }
 	.composer-tools { gap: 8px; font-size: 8px; }

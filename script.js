@@ -25,6 +25,7 @@
 	const messagesPage = document.querySelector("#messages-page");
 	const messageForm = document.querySelector("#message-form");
 	const settingsPage = document.querySelector("#settings-page");
+	const accountPage = document.querySelector("#account-page");
 	const accountButton = document.querySelector("#account-button");
 	const accountDropdown = document.querySelector("#account-dropdown");
 	let currentView = "home";
@@ -49,6 +50,13 @@
 		frame.dataset.sticker = profileStickerGlyphs[sticker] ? sticker : "none";
 		const marker = frame.querySelector(".profile-sticker");
 		if (marker) { marker.textContent = profileStickerGlyphs[sticker] || ""; marker.hidden = !profileStickerGlyphs[sticker]; }
+	}
+	function setProfileCoverPreview(url) {
+		const image = document.querySelector("#profile-cover-preview-image");
+		image.src = url || "";
+		image.hidden = !url;
+		document.querySelector("#profile-cover-preview").classList.toggle("has-image", Boolean(url));
+		document.querySelector("#profile-cover-placeholder").hidden = Boolean(url);
 	}
 	function loadAppearance() {
 		try {
@@ -111,13 +119,13 @@
 		updateAccount(window.UnisonAuth.getUser(), currentProfile);
 		if (currentProfile) {
 			document.querySelector("#profile-display-name").value = currentProfile.display_name || "";
-			document.querySelector("#profile-handle").value = currentProfile.handle || "";
+			document.querySelector("#profile-handle-display").textContent = currentProfile.handle ? `@${currentProfile.handle}` : "@member";
 			document.querySelector("#profile-bio").value = currentProfile.bio || "";
 			document.querySelector("#profile-avatar-preview").src = currentProfile.avatar_url || fallbackAvatar;
+			setProfileCoverPreview(currentProfile.profile_background_url || "");
 			document.querySelector("#profile-border").value = currentProfile.avatar_border || "none";
 			document.querySelector("#profile-sticker").value = currentProfile.profile_sticker || "none";
 			applyProfileDecoration(document.querySelector("#profile-avatar-frame"), currentProfile.avatar_border, currentProfile.profile_sticker);
-			document.querySelector("#my-profile-email").textContent = window.UnisonAuth.getUser().email || "";
 		}
 		return currentProfile;
 	}
@@ -360,6 +368,8 @@
 		handle.textContent = cleanHandle ? `@${cleanHandle}` : "";
 		bio.textContent = "";
 		avatar.src = fallbackAvatar;
+		document.querySelector("#public-profile-cover").hidden = true;
+		document.querySelector("#public-profile-cover-image").removeAttribute("src");
 		posts.replaceChildren(Object.assign(document.createElement("p"), { className: "profile-posts-empty", textContent: "Loading posts…" }));
 		follow.hidden = true;
 		message.hidden = true;
@@ -384,6 +394,9 @@
 			handle.textContent = profile.handle ? `@${profile.handle}` : "@member";
 			bio.textContent = profile.bio || "";
 			avatar.src = profile.avatar_url || fallbackAvatar;
+			const coverImage = document.querySelector("#public-profile-cover-image");
+			coverImage.src = profile.profile_background_url || "";
+			document.querySelector("#public-profile-cover").hidden = !profile.profile_background_url;
 			applyProfileDecoration(document.querySelector("#public-profile-frame"), profile.avatar_border, profile.profile_sticker);
 			const signedInUser = window.UnisonAuth.getUser();
 			if (profile.id && signedInUser && profile.id !== signedInUser.id) {
@@ -633,7 +646,7 @@
 		}
 		currentView = view;
 		currentFeed = view === "my-posts" ? "mine" : "all";
-		viewTitle.textContent = view === "settings" ? "Settings" : view === "messages" ? "Messages" : view === "search" ? "Search results" : view === "my-profile" ? "My Profile" : view === "my-posts" ? "My posts" : view === "saved" ? "Saved" : view === "explore" ? "Explore" : view === "townsquare" ? "Townsquare" : view === "community" ? "Community feed" : "Home";
+		viewTitle.textContent = view === "account" ? "My account" : view === "settings" ? "Settings" : view === "messages" ? "Messages" : view === "search" ? "Search results" : view === "my-profile" ? "My Profile" : view === "my-posts" ? "My posts" : view === "saved" ? "Saved" : view === "explore" ? "Explore" : view === "townsquare" ? "Townsquare" : view === "community" ? "Community feed" : "Home";
 		if (!window.UnisonAuth.getUser()) {
 			if (view === "community") pageSubtitle.textContent = "Public community posts are visible to everyone.";
 			authGate.querySelector("h2").textContent = view === "community" ? "Public community feed" : "Take a look around";
@@ -641,19 +654,29 @@
 		}
 		pageSubtitle.textContent = view === "search" ? `Posts matching “${search.value.trim()}”` : view === "my-profile" ? "Manage your picture and the information people see on your profile." : view === "my-posts" ? "Everything you have shared with your circle." : view === "townsquare" ? "Your neighborhood, one conversation at a time." : view === "community" ? "Posts shared with every signed-in member." : "Good things happen when we find each other.";
 		if (view === "messages") pageSubtitle.textContent = "Private conversations between you and other members.";
-		if (view === "settings") pageSubtitle.textContent = "Personalize how Unison looks and manage your account.";
+		if (view === "settings") pageSubtitle.textContent = "Personalize how Unison looks.";
+		if (view === "account") pageSubtitle.textContent = "Manage your sign-in email and handle.";
 		document.querySelector("#today-label").textContent = view === "settings" ? "MAKE UNISON YOURS" : view === "search" ? "SEARCH YOUR CIRCLE" : view === "my-profile" ? "YOUR PUBLIC PROFILE" : view === "community" ? "SHARED WITH THE COMMUNITY" : "YOUR PEOPLE, YOUR PACE";
 		if (view === "community") pageSubtitle.textContent = "Public community posts are visible to everyone.";
 		document.querySelector("#home").classList.toggle("search-mode", view === "search");
 		document.querySelector("#home").classList.toggle("profile-mode", view === "my-profile");
 		document.querySelector("#home").classList.toggle("messages-mode", view === "messages");
 		document.querySelector("#home").classList.toggle("settings-mode", view === "settings");
+		document.querySelector("#home").classList.toggle("account-mode", view === "account");
 		document.querySelector("#my-profile-page").hidden = view !== "my-profile";
+		accountPage.hidden = view !== "account";
 		messagesPage.hidden = view !== "messages";
 		settingsPage.hidden = view !== "settings";
-		if (view === "settings") document.querySelector("#settings-account-email").textContent = window.UnisonAuth.getUser()?.email || "";
+		if (view === "account") {
+			const user = window.UnisonAuth.getUser();
+			document.querySelector("#account-email").value = user?.email || "";
+			document.querySelector("#account-handle").value = currentProfile?.handle || "";
+			if (!currentProfile) loadMyProfile().then((profile) => {
+				if (profile && currentView === "account") document.querySelector("#account-handle").value = profile.handle || "";
+			}).catch((error) => showToast(error.message));
+		}
 		townSquareIntro.hidden = view !== "townsquare";
-		feedControls.hidden = view === "townsquare" || view === "community" || view === "search" || view === "my-profile" || view === "messages" || view === "settings";
+		feedControls.hidden = view === "townsquare" || view === "community" || view === "search" || view === "my-profile" || view === "messages" || view === "settings" || view === "account";
 		input.placeholder = view === "townsquare" ? "Share something happening nearby..." : view === "community" ? "Share with the community..." : "What's on your mind, Alex?";
 		postScope.value = view === "community" ? "community" : "home";
 		document.querySelector("#post-destination").hidden = view === "townsquare" || view === "community";
@@ -682,7 +705,7 @@
 			if (activeConversation) refreshMessageHistory().catch((error) => showToast(error.message));
 			return;
 		}
-		if (view === "settings") return;
+		if (view === "settings" || view === "account") return;
 		refreshSupabaseFeed().catch((error) => showToast(error.message));
 	}
 
@@ -746,13 +769,33 @@
 		setAuthMode(false);
 		openAuthDialog();
 	});
-	document.querySelector("#menu-account").addEventListener("click", () => { closeAccountDropdown(); setView("my-profile"); });
+	document.querySelector("#menu-account").addEventListener("click", () => { closeAccountDropdown(); setView("account"); });
 	document.querySelector("#menu-settings").addEventListener("click", () => { closeAccountDropdown(); setView("settings"); });
 	document.querySelector("#menu-signout").addEventListener("click", () => {
 		closeAccountDropdown();
 		document.querySelector("#auth-signout").click();
 	});
-	document.querySelector("#settings-profile").addEventListener("click", () => setView("my-profile"));
+	document.querySelector("#profile-handle-link").addEventListener("click", () => setView("account"));
+	document.querySelector("#account-handle-form").addEventListener("submit", async (event) => {
+		event.preventDefault();
+		const button = document.querySelector("#account-handle-save");
+		const handle = document.querySelector("#account-handle").value.trim().replace(/^@/, "");
+		if (!/^[A-Za-z0-9_]{2,24}$/.test(handle)) return showToast("Use 2–24 letters, numbers, or underscores for your handle.");
+		button.disabled = true;
+		button.textContent = "Saving…";
+		try {
+			currentProfile = await window.UnisonApi.updateMyHandle(handle);
+			document.querySelector("#profile-handle-display").textContent = `@${currentProfile.handle}`;
+			updateAccount(window.UnisonAuth.getUser(), currentProfile);
+			await Promise.all([refreshSupabaseFeed(), refreshPeople()]);
+			showToast("Handle updated.");
+		} catch (error) {
+			showToast(error.message);
+		} finally {
+			button.disabled = false;
+			button.textContent = "Save handle";
+		}
+	});
 	document.addEventListener("click", (event) => {
 		if (!event.target.closest(".account-menu-container")) closeAccountDropdown();
 	});
@@ -773,28 +816,42 @@
 		}
 		document.querySelector("#profile-avatar-preview").src = URL.createObjectURL(file);
 	});
+	document.querySelector("#profile-background-file").addEventListener("change", (event) => {
+		const file = event.currentTarget.files[0];
+		if (!file) return;
+		if (!file.type.startsWith("image/") || file.size > 5 * 1024 * 1024) {
+			event.currentTarget.value = "";
+			return showToast("Choose a background image smaller than 5 MB.");
+		}
+		setProfileCoverPreview(URL.createObjectURL(file));
+	});
 	document.querySelector("#profile-border").addEventListener("change", (event) => applyProfileDecoration(document.querySelector("#profile-avatar-frame"), event.currentTarget.value, document.querySelector("#profile-sticker").value));
 	document.querySelector("#profile-sticker").addEventListener("change", (event) => applyProfileDecoration(document.querySelector("#profile-avatar-frame"), document.querySelector("#profile-border").value, event.currentTarget.value));
 	document.querySelector("#profile-save").addEventListener("click", async (event) => {
 		const button = event.currentTarget;
 		const displayName = document.querySelector("#profile-display-name").value.trim();
-		const handle = document.querySelector("#profile-handle").value.trim().replace(/^@/, "");
 		const bio = document.querySelector("#profile-bio").value.trim();
 		const avatarBorder = document.querySelector("#profile-border").value;
 		const profileSticker = document.querySelector("#profile-sticker").value;
 		const photo = document.querySelector("#profile-avatar-file").files[0];
+		const backgroundPhoto = document.querySelector("#profile-background-file").files[0];
+		const handle = currentProfile?.handle || "member";
 		if (!displayName) return showToast("Add a display name.");
 		if (!/^[A-Za-z0-9_]{2,24}$/.test(handle)) return showToast("Use 2–24 letters, numbers, or underscores for your handle.");
 		button.disabled = true;
 		button.textContent = "Saving…";
 		try {
 			let avatarUrl = currentProfile?.avatar_url || "";
+			let backgroundUrl = currentProfile?.profile_background_url || "";
 			if (photo) avatarUrl = await window.UnisonApi.uploadProfileImage(photo);
-			currentProfile = await window.UnisonApi.updateMyProfile({ handle, displayName, bio, avatarUrl, avatarBorder, profileSticker });
+			if (backgroundPhoto) backgroundUrl = await window.UnisonApi.uploadProfileImage(backgroundPhoto);
+			currentProfile = await window.UnisonApi.updateMyProfile({ displayName, bio, avatarUrl, backgroundUrl, avatarBorder, profileSticker });
 			updateAccount(window.UnisonAuth.getUser(), currentProfile);
 			document.querySelector("#profile-avatar-preview").src = currentProfile.avatar_url || fallbackAvatar;
 			applyProfileDecoration(document.querySelector("#profile-avatar-frame"), currentProfile.avatar_border, currentProfile.profile_sticker);
 			document.querySelector("#profile-avatar-file").value = "";
+			document.querySelector("#profile-background-file").value = "";
+			setProfileCoverPreview(currentProfile.profile_background_url || "");
 			await Promise.all([refreshSupabaseFeed(), refreshPeople(), refreshStories()]);
 			showToast("Profile saved.");
 		} catch (error) {

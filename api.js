@@ -335,7 +335,7 @@ window.UnisonApi = Object.freeze({
 	},
 	async getMyProfile() {
 		const session = await requireSession();
-		const params = new URLSearchParams({ select: "id,handle,display_name,avatar_url,bio,avatar_border,profile_sticker", id: `eq.${session.user.id}`, limit: "1" });
+		const params = new URLSearchParams({ select: "id,handle,display_name,avatar_url,profile_background_url,bio,avatar_border,profile_sticker", id: `eq.${session.user.id}`, limit: "1" });
 		const rows = await supabaseRequest(`profiles?${params}`, { auth: true });
 		if (!rows[0]) return null;
 		return { ...rows[0], avatar_url: await profileAvatarUrl(rows[0].avatar_url) };
@@ -343,7 +343,7 @@ window.UnisonApi = Object.freeze({
 	async getPublicProfile(userId) {
 		const auth = Boolean(supabaseSession);
 		if (auth) await requireSession();
-		const params = new URLSearchParams({ select: "id,handle,display_name,avatar_url,bio,avatar_border,profile_sticker", id: `eq.${userId}`, limit: "1" });
+		const params = new URLSearchParams({ select: "id,handle,display_name,avatar_url,profile_background_url,bio,avatar_border,profile_sticker", id: `eq.${userId}`, limit: "1" });
 		const rows = await supabaseRequest(`profiles?${params}`, { auth });
 		if (!rows[0]) return null;
 		return { ...rows[0], avatar_url: await profileAvatarUrl(rows[0].avatar_url).catch(() => "") };
@@ -382,13 +382,23 @@ window.UnisonApi = Object.freeze({
 		});
 		return rows[0];
 	},
-	async updateMyProfile({ handle, displayName, bio, avatarUrl, avatarBorder = "none", profileSticker = "none" }) {
+	async updateMyProfile({ displayName, bio, avatarUrl, backgroundUrl, avatarBorder = "none", profileSticker = "none" }) {
+		const session = await requireSession();
+		const params = new URLSearchParams({ id: `eq.${session.user.id}` });
+		const rows = await supabaseRequest(`profiles?${params}&select=id,handle,display_name,avatar_url,profile_background_url,bio,avatar_border,profile_sticker`, {
+			method: "PATCH", auth: true,
+			headers: { Prefer: "return=representation" },
+			body: { display_name: displayName, bio, avatar_url: avatarUrl, profile_background_url: backgroundUrl, avatar_border: avatarBorder, profile_sticker: profileSticker }
+		});
+		return rows[0];
+	},
+	async updateMyHandle(handle) {
 		const session = await requireSession();
 		const params = new URLSearchParams({ id: `eq.${session.user.id}` });
 		const rows = await supabaseRequest(`profiles?${params}&select=id,handle,display_name,avatar_url,bio,avatar_border,profile_sticker`, {
 			method: "PATCH", auth: true,
 			headers: { Prefer: "return=representation" },
-			body: { handle, display_name: displayName, bio, avatar_url: avatarUrl, avatar_border: avatarBorder, profile_sticker: profileSticker }
+			body: { handle }
 		});
 		return rows[0];
 	},
