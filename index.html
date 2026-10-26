@@ -9,7 +9,7 @@
 	<link rel="preconnect" href="https://fonts.googleapis.com">
 	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 	<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
-	<link rel="stylesheet" href="style.css?v=5fcce60">
+	<link rel="stylesheet" href="style.css?v=auth-form-fix1">
 </head>
 <body>
 	<!-- 02. Global navigation -->
@@ -186,7 +186,7 @@
 			<h2 id="auth-title">Sign in</h2>
 			<p class="dialog-copy" id="auth-message">Sign in to post, like, save, and join groups.</p>
 			<label class="dialog-field">Email<input id="auth-email" type="email" autocomplete="email" required></label>
-			<label class="dialog-field">Password<input id="auth-password" type="password" autocomplete="current-password" minlength="8" required></label>
+			<label class="dialog-field">Password<div class="password-control"><input id="auth-password" type="password" autocomplete="current-password" minlength="8" required><button class="password-toggle" id="auth-password-toggle" type="button" aria-controls="auth-password" aria-pressed="false">Show</button></div></label>
 			<label class="dialog-field" id="auth-handle-field" hidden>Handle<input id="auth-handle" type="text" autocomplete="username" maxlength="24"></label>
 			<label class="dialog-field" id="auth-name-field" hidden>Display name<input id="auth-name" type="text" autocomplete="name" maxlength="60"></label>
 			<button class="dialog-primary" type="submit" id="auth-submit">Sign in</button>
