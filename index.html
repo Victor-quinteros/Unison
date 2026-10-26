@@ -3,76 +3,296 @@
 <head>
 	<meta charset="utf-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
-	<title>Unison</title>
-	<style>
-		body {
-			max-width: 640px;
-			margin: 40px auto;
-			padding: 0 18px;
-			background: #f5f7f2;
-			color: #20332a;
-			font-family: Arial, sans-serif;
-		}
-
-		h1 { color: #e4694f; }
-		form, article {
-			margin: 16px 0;
-			padding: 16px;
-			border: 1px solid #e1e7df;
-			border-radius: 8px;
-			background: white;
-		}
-
-		textarea {
-			width: 100%;
-			min-height: 70px;
-			padding: 8px;
-			border: 1px solid #dce3da;
-			border-radius: 4px;
-			box-sizing: border-box;
-			font: inherit;
-		}
-
-		button {
-			margin-top: 10px;
-			padding: 9px 16px;
-			border: 0;
-			border-radius: 4px;
-			background: #20332a;
-			color: white;
-			cursor: pointer;
-		}
-
-		button:hover { background: #385344; }
-		.author { margin: 0; font-weight: bold; }
-		.post-text { line-height: 1.5; overflow-wrap: anywhere; }
-	</style>
+	<meta name="theme-color" content="#f5f7fb">
+	<title>Unison | Your circle, in sync</title>
+	<link rel="preconnect" href="https://fonts.googleapis.com">
+	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+	<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
+	<link rel="stylesheet" href="style.css">
 </head>
 <body>
-	<header>
-		<h1>Unison</h1>
-		<p>A little more together.</p>
+	<header class="site-header">
+		<div class="header-inner">
+			<a class="brand" href="#home"><span class="brand-mark" aria-hidden="true"></span>unison</a>
+			<label class="search-wrap global-search"><span class="search-icon" aria-hidden="true">⌕</span><input class="search" id="search" type="search" placeholder="Search people, posts, groups, or anything..." aria-label="Search posts"></label>
+			<nav class="global-nav" aria-label="Quick navigation">
+				<button class="icon-button active" type="button" data-view="home" aria-label="Home">⌂</button>
+				<button class="icon-button" type="button" data-view="townsquare" aria-label="Townsquare">♧</button>
+				<button class="icon-button" type="button" data-view="explore" aria-label="Watch">▷</button>
+				<button class="icon-button" type="button" data-view="saved" aria-label="Marketplace">▤</button>
+			</nav>
+			<button class="header-account" type="button"><img class="avatar" src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&q=80" alt=""><span>Victor Quinteros</span><span class="chevron" aria-hidden="true">⌄</span></button>
+		</div>
 	</header>
+	<div class="app-shell">
+		<aside class="sidebar" aria-label="Main navigation">
+			<nav class="nav-list">
+				<button class="nav-button active" type="button" data-view="home"><span class="nav-icon" aria-hidden="true">⌂</span><span>Home</span></button>
+				<button class="nav-button" type="button" data-view="explore"><span class="nav-icon" aria-hidden="true">⌕</span><span>Explore</span></button>
+				<button class="nav-button" type="button" data-coming-soon><span class="nav-icon" aria-hidden="true">♧</span><span>Friends</span></button>
+				<button class="nav-button" type="button" data-coming-soon><span class="nav-icon" aria-hidden="true">♧</span><span>Groups</span></button>
+				<button class="nav-button" type="button" data-coming-soon><span class="nav-icon" aria-hidden="true">▤</span><span>Marketplace</span></button>
+				<button class="nav-button" type="button" data-coming-soon><span class="nav-icon" aria-hidden="true">▷</span><span>Watch</span></button>
+				<button class="nav-button" type="button" data-view="townsquare"><span class="nav-icon" aria-hidden="true">⌖</span><span>Townsquare</span></button>
+				<button class="nav-button" type="button" data-coming-soon><span class="nav-icon" aria-hidden="true">⚑</span><span>Pages</span></button>
+				<button class="nav-button" type="button" data-coming-soon><span class="nav-icon" aria-hidden="true">▣</span><span>Events</span></button>
+				<button class="nav-button" type="button" data-coming-soon><span class="nav-icon" aria-hidden="true">◷</span><span>Memories</span></button>
+				<button class="nav-button" type="button" data-view="saved"><span class="nav-icon" aria-hidden="true">♡</span><span>Saved</span></button>
+			</nav>
+			<section>
+				<h2 class="sidebar-heading">Your shortcuts</h2>
+				<div class="shortcut-list">
+					<button class="shortcut" type="button" data-coming-soon><img src="https://images.unsplash.com/photo-1511512578047-dfb367046420?auto=format&fit=crop&w=70&q=70" alt=""><span>Tech & Gaming Hub</span></button>
+					<button class="shortcut" type="button" data-coming-soon><img src="https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=70&q=70" alt=""><span>Panama Travel & Life</span></button>
+					<button class="shortcut" type="button" data-coming-soon><img src="https://images.unsplash.com/photo-1503376780353-7e6692767b70?auto=format&fit=crop&w=70&q=70" alt=""><span>Car Enthusiasts</span></button>
+				</div>
+			</section>
 
-	<main>
-		<form id="post-form">
-			<label for="post-text">Share something with your people</label>
-			<textarea id="post-text" maxlength="500" placeholder="What's on your mind?" required></textarea>
-			<button type="submit">Post</button>
-		</form>
+			<section class="customizer" aria-label="Appearance settings">
+				<h2 class="customizer-heading">Make it yours</h2>
+				<span class="control-label">Accent color</span>
+				<div class="swatches" role="group" aria-label="Accent color">
+					<button class="swatch coral" type="button" data-accent-choice="coral" aria-label="Coral accent" aria-pressed="true"></button>
+					<button class="swatch lime" type="button" data-accent-choice="lime" aria-label="Lime accent" aria-pressed="false"></button>
+					<button class="swatch blue" type="button" data-accent-choice="blue" aria-label="Blue accent" aria-pressed="false"></button>
+				</div>
+				<span class="control-label">Appearance</span>
+				<div class="segmented" role="group" aria-label="Appearance">
+					<button type="button" data-theme-choice="light" aria-pressed="true">Light</button>
+					<button type="button" data-theme-choice="dim" aria-pressed="false">Dim</button>
+				</div>
+				<label class="density-row" for="compact-mode"><span>Compact posts</span><input class="switch" id="compact-mode" type="checkbox" role="switch"></label>
+			</section>
 
-		<section id="feed" aria-label="Your feed">
-			<article>
-				<p class="author">Maya Chen</p>
-				<p class="post-text">Found a quiet little corner of the city this morning. Hope you find a moment for yourself today, too.</p>
-			</article>
-		</section>
-	</main>
+			<div class="account">
+				<img class="avatar" src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&q=80" alt="">
+				<div><span class="account-name">Alex Morgan</span><span class="account-handle">@alexm</span></div>
+			</div>
+		</aside>
+
+		<main id="home">
+			<div class="page-heading">
+				<div><p class="eyebrow" id="today-label">YOUR PEOPLE, YOUR PACE</p><h1 id="view-title">Home</h1><p class="page-subtitle">Good things happen when we find each other.</p></div>
+				<span class="date-pill" id="date-label"></span>
+			</div>
+
+			<form class="composer" id="post-form">
+				<div class="composer-main"><img class="avatar" src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&q=80" alt=""><textarea id="post-text" maxlength="500" placeholder="What's on your mind, Alex?" aria-label="Write a post" required></textarea></div>
+				<div class="composer-footer"><div class="composer-tools"><button class="composer-tool" type="button" aria-label="Add a photo">▧ &nbsp;Photo</button><button class="composer-tool" type="button" aria-label="Add a feeling">☺ &nbsp;Feeling</button></div><button class="post-button" type="submit">Share post</button></div>
+			</form>
+
+			<div class="stories" aria-label="Stories">
+				<button class="story add" type="button" data-focus-composer><span class="story-ring" aria-hidden="true">＋</span><span>Create story</span></button>
+				<button class="story" type="button"><span class="story-ring"><img src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=100&q=80" alt=""></span><span>Maya Lopez</span></button>
+				<button class="story" type="button"><span class="story-ring"><img src="https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=100&q=80" alt=""></span><span>Daniel Ruiz</span></button>
+				<button class="story" type="button"><span class="story-ring"><img src="https://images.unsplash.com/photo-1531123897727-8f129e1688ce?auto=format&fit=crop&w=100&q=80" alt=""></span><span>Sofia Martinez</span></button>
+				<button class="story" type="button"><span class="story-ring"><img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&q=80&sat=-80" alt=""></span><span>Carlos Vega</span></button>
+				<button class="story" type="button"><span class="story-ring"><img src="https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=100&q=80" alt=""></span><span>Travel Life</span></button>
+			</div>
+			<section class="town-square-intro" id="town-square-intro" hidden>
+				<div><p class="town-square-label">YOUR NEIGHBORHOOD, IN THE KNOW</p><p class="town-square-copy">Local conversations, useful finds, and small things happening nearby.</p></div>
+				<span aria-hidden="true">⌖</span>
+			</section>
+
+			<div class="feed-controls">
+				<div class="feed-tabs" role="tablist" aria-label="Feed filter"><button class="feed-tab active" type="button" data-filter="all" aria-selected="true">For you</button><button class="feed-tab" type="button" data-filter="following" aria-selected="false">Following</button></div>
+				<span class="sort-label">Fresh from your circle</span>
+			</div>
+
+			<section id="feed" aria-label="Your feed">
+				<article class="post" data-author="maya" data-search="maya chen city morning quiet little corner slowmornings">
+					<header class="post-header"><img class="avatar post-avatar" src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=100&q=80" alt=""><div class="post-identity"><div class="name-line"><span class="post-name">Maya Chen</span><span class="post-handle">@mayasees</span><span class="post-time">· 2h</span></div></div><button class="post-menu" type="button" aria-label="More post options">···</button></header>
+					<p class="post-copy">Found a quiet little corner of the city this morning. Hope you find a moment for yourself today, too. <span class="tag">#slowmornings</span></p>
+					<img class="post-image" src="https://images.unsplash.com/photo-1470252649378-9c29740c9fa8?auto=format&fit=crop&w=1100&q=85" alt="Warm morning light over a peaceful landscape" loading="lazy">
+					<div class="post-actions"><button class="action" type="button" data-action="like" aria-pressed="false"><span class="action-icon">♡</span><span data-count>128</span><span data-label>Like</span></button><button class="action" type="button" data-action="reply"><span>◌</span><span>18 replies</span></button><button class="action" type="button" data-action="share"><span>↗</span><span>Share</span></button><button class="action" type="button" data-action="save" aria-label="Save post" aria-pressed="false"><span>▱</span><span data-label>Save</span></button></div>
+				</article>
+
+				<article class="post" data-author="leo" data-search="leo park cooking dumplings mom family recipe weekendcooking">
+					<header class="post-header"><img class="avatar post-avatar" src="https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=100&q=80" alt=""><div class="post-identity"><div class="name-line"><span class="post-name">Leo Park</span><span class="post-handle">@leocooks</span><span class="post-time">· 4h</span></div></div><button class="post-menu" type="button" aria-label="More post options">···</button></header>
+					<p class="post-copy">Sunday project: dumplings with my mom. She still folds them twice as fast as I do, but I am getting there. <span class="tag">#weekendcooking</span></p>
+					<img class="post-image" src="https://images.unsplash.com/photo-1563245372-f21724e3856d?auto=format&fit=crop&w=1100&q=85" alt="A home-cooked meal shared around a table" loading="lazy">
+					<div class="post-actions"><button class="action" type="button" data-action="like" aria-pressed="true"><span class="action-icon">♥</span><span data-count>46</span><span data-label>Liked</span></button><button class="action" type="button" data-action="reply"><span>◌</span><span>9 replies</span></button><button class="action" type="button" data-action="share"><span>↗</span><span>Share</span></button><button class="action" type="button" data-action="save" aria-label="Save post" aria-pressed="false"><span>▱</span><span data-label>Save</span></button></div>
+				</article>
+
+				<article class="post town-square-post" data-author="town-market" data-local="true" data-search="townsquare neighborhood farmers market local Saturday music produce">
+					<header class="post-header"><img class="avatar post-avatar" src="https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=100&q=80" alt=""><div class="post-identity"><div class="name-line"><span class="post-name">Riverside Market</span><span class="post-handle">@riversidemarket</span><span class="post-time">· 1h</span></div></div><button class="post-menu" type="button" aria-label="More post options">···</button></header>
+					<div class="local-meta"><span>⌖ Townsquare</span> · Community update</div>
+					<p class="post-copy">The Saturday market is back this weekend. Fresh produce, neighborhood makers, and live music from 9 to 1. Bring a friend. <span class="tag">#shoplocal</span></p>
+					<img class="post-image" src="https://images.unsplash.com/photo-1488459716781-31db52582fe9?auto=format&fit=crop&w=1100&q=85" alt="Fresh produce at a neighborhood farmers market" loading="lazy">
+					<div class="post-actions"><button class="action" type="button" data-action="like" aria-pressed="false"><span class="action-icon">♡</span><span data-count>32</span><span data-label>Like</span></button><button class="action" type="button" data-action="reply"><span>◌</span><span>7 replies</span></button><button class="action" type="button" data-action="share"><span>↗</span><span>Share</span></button><button class="action" type="button" data-action="save" aria-label="Save post" aria-pressed="false"><span>▱</span><span data-label>Save</span></button></div>
+				</article>
+
+				<article class="post town-square-post" data-author="jordan" data-local="true" data-search="townsquare neighborhood lost dog park help community">
+					<header class="post-header"><img class="avatar post-avatar" src="https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=100&q=80" alt=""><div class="post-identity"><div class="name-line"><span class="post-name">Jordan Lee</span><span class="post-handle">@jordanlee</span><span class="post-time">· 3h</span></div></div><button class="post-menu" type="button" aria-label="More post options">···</button></header>
+					<div class="local-meta"><span>⌖ Townsquare</span> · Neighbor post</div>
+					<p class="post-copy">A friendly reminder: the little free library by Cedar Park got a fresh restock today. I left a few kids' books and took a mystery novel. <span class="tag">#passitalong</span></p>
+					<div class="post-actions"><button class="action" type="button" data-action="like" aria-pressed="false"><span class="action-icon">♡</span><span data-count>14</span><span data-label>Like</span></button><button class="action" type="button" data-action="reply"><span>◌</span><span>3 replies</span></button><button class="action" type="button" data-action="share"><span>↗</span><span>Share</span></button><button class="action" type="button" data-action="save" aria-label="Save post" aria-pressed="false"><span>▱</span><span data-label>Save</span></button></div>
+				</article>
+			</section>
+			<div class="empty-state" id="empty-state"><strong>Nothing in this little corner yet.</strong>Try a different search or check back soon.</div>
+		</main>
+
+		<aside class="right-rail" aria-label="Community">
+			<section class="rail-panel"><h2 class="panel-title">Suggested for you <button class="text-link" type="button" data-coming-soon>See all</button></h2><div class="suggestion-list">
+				<div class="suggestion"><img src="https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=90&q=75" alt=""><div class="suggestion-copy"><strong>Nature & Adventure</strong><span>Group · 125K members</span></div><button class="join-button" type="button" data-coming-soon>Join</button></div>
+				<div class="suggestion"><img src="https://images.unsplash.com/photo-1511512578047-dfb367046420?auto=format&fit=crop&w=90&q=75" alt=""><div class="suggestion-copy"><strong>Tech & Innovation</strong><span>Group · 98K members</span></div><button class="join-button" type="button" data-coming-soon>Join</button></div>
+				<div class="suggestion"><img src="https://images.unsplash.com/photo-1511512578047-dfb367046420?auto=format&fit=crop&w=90&q=75&sat=-70" alt=""><div class="suggestion-copy"><strong>Gaming Community</strong><span>Group · 210K members</span></div><button class="join-button" type="button" data-coming-soon>Join</button></div>
+			</div></section>
+			<section class="rail-panel"><h2 class="panel-title">Trending</h2><div class="trend-list">
+				<button class="trend" type="button" data-topic="Panama City"><span class="trend-type">1 · CITY</span><span class="trend-name">#PanamaCity</span><span class="trend-count">12.4K posts</span></button>
+				<button class="trend" type="button" data-topic="Tech News"><span class="trend-type">2 · TECHNOLOGY</span><span class="trend-name">#TechNews</span><span class="trend-count">8.7K posts</span></button>
+				<button class="trend" type="button" data-topic="weekendcooking"><span class="trend-type">3 · FOOD</span><span class="trend-name">#WeekendCooking</span><span class="trend-count">3.1K posts</span></button>
+				<button class="trend" type="button" data-topic="Travel"><span class="trend-type">4 · TRAVEL</span><span class="trend-name">#Travel</span><span class="trend-count">15.6K posts</span></button>
+			</div></section>
+			<section class="rail-panel"><h2 class="panel-title">Groups</h2><div class="suggestion-list">
+				<div class="suggestion"><img src="https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=90&q=75" alt=""><div class="suggestion-copy"><strong>Panama Travel & Life</strong><span>8.2K members</span></div><button class="join-button" type="button" data-coming-soon>Join</button></div>
+				<div class="suggestion"><img src="https://images.unsplash.com/photo-1503376780353-7e6692767b70?auto=format&fit=crop&w=90&q=75" alt=""><div class="suggestion-copy"><strong>Car Enthusiasts</strong><span>12.6K members</span></div><button class="join-button" type="button" data-coming-soon>Join</button></div>
+			</div></section>
+			<footer class="rail-footer"><a href="#about">About</a><a href="#guidelines">Guidelines</a><a href="#privacy">Privacy</a><span>© 2026 Unison</span></footer>
+		</aside>
+
+		<aside class="contact-rail" aria-label="Contacts and quick links">
+			<section class="contact-panel"><h2 class="contact-heading">Contacts <button type="button" aria-label="Search contacts">⌕</button></h2><div class="contact-list">
+				<div class="contact"><img class="avatar" src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=70&q=70" alt=""><span class="contact-name">Maria Lopez</span><span class="online-dot" aria-label="Online"></span></div>
+				<div class="contact"><img class="avatar" src="https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=70&q=70" alt=""><span class="contact-name">Daniel Ruiz</span><span class="online-dot" aria-label="Online"></span></div>
+				<div class="contact"><img class="avatar" src="https://images.unsplash.com/photo-1531123897727-8f129e1688ce?auto=format&fit=crop&w=70&q=70" alt=""><span class="contact-name">Sofia Martinez</span><span class="online-dot" aria-label="Online"></span></div>
+				<div class="contact"><img class="avatar" src="https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=70&q=70" alt=""><span class="contact-name">Carlos Vega</span><span class="online-dot" aria-label="Online"></span></div>
+				<div class="contact"><img class="avatar" src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=70&q=70" alt=""><span class="contact-name">Elena Torres</span><span class="online-dot" aria-label="Online"></span></div>
+				<div class="contact"><img class="avatar" src="https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=70&q=70" alt=""><span class="contact-name">Javier Morales</span><span class="online-dot" aria-label="Online"></span></div>
+				<div class="contact"><img class="avatar" src="https://images.unsplash.com/photo-1508214751196-bcfd4ca60f91?auto=format&fit=crop&w=70&q=70" alt=""><span class="contact-name">Lucia Herrera</span><span class="online-dot" aria-label="Online"></span></div>
+				<div class="contact"><img class="avatar" src="https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=70&q=70&sat=-50" alt=""><span class="contact-name">Diego Sanchez</span><span class="online-dot" aria-label="Online"></span></div>
+			</div></section>
+			<section class="contact-panel"><h2 class="contact-heading">Birthdays</h2><div class="birthday-row"><span class="birthday-icon" aria-hidden="true">♙</span><img class="avatar" src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=70&q=70" alt=""><div><strong>Sofia Martinez</strong><span>Today</span></div></div></section>
+			<section class="contact-panel"><h2 class="contact-heading">Sponsored</h2><img class="sponsored-image" src="https://images.unsplash.com/photo-1500375592092-40eb2168fd21?auto=format&fit=crop&w=400&q=80" alt="Sunny tropical beach"><p class="sponsored-title">Escape to Paradise</p><p class="sponsored-copy">Discover amazing destinations and plan your next adventure.</p></section>
+			<section class="contact-panel"><h2 class="contact-heading">Quick links</h2><div class="quick-grid"><button class="quick-link" type="button" data-focus-composer>▧ Create post</button><button class="quick-link" type="button" data-coming-soon>▣ Create event</button><button class="quick-link" type="button" data-coming-soon>▤ Marketplace</button><button class="quick-link" type="button" data-coming-soon>♧ Groups</button><button class="quick-link" type="button" data-coming-soon>ⓘ Help</button><button class="quick-link" type="button" data-coming-soon>⚙ Settings</button></div></section>
+		</aside>
+	</div>
+
+	<nav class="mobile-nav" aria-label="Main navigation">
+		<button class="nav-button active" type="button" data-view="home" aria-label="Home"><span class="nav-icon" aria-hidden="true">⌂</span><span class="nav-label">Home</span></button>
+		<button class="nav-button" type="button" data-view="townsquare" aria-label="Townsquare"><span class="nav-icon" aria-hidden="true">⌖</span><span class="nav-label">Town</span></button>
+		<button class="nav-button" type="button" data-view="explore" aria-label="Explore"><span class="nav-icon" aria-hidden="true">⌕</span><span class="nav-label">Explore</span></button>
+		<button class="nav-button" type="button" data-focus-composer aria-label="Write a post"><span class="nav-icon" aria-hidden="true">＋</span><span class="nav-label">Post</span></button>
+		<button class="nav-button" type="button" data-view="saved" aria-label="Saved posts"><span class="nav-icon" aria-hidden="true">♡</span><span class="nav-label">Saved</span></button>
+	</nav>
+	<div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 	<script>
 		const form = document.querySelector("#post-form");
 		const input = document.querySelector("#post-text");
 		const feed = document.querySelector("#feed");
+		const search = document.querySelector("#search");
+		const emptyState = document.querySelector("#empty-state");
+		const viewTitle = document.querySelector("#view-title");
+		const pageSubtitle = document.querySelector(".page-subtitle");
+		const townSquareIntro = document.querySelector("#town-square-intro");
+		const feedControls = document.querySelector(".feed-controls");
+		const toast = document.querySelector("#toast");
+		const following = new Set();
+		let currentView = "home";
+		let currentFeed = "all";
+		let toastTimer;
+
+		function showToast(message) {
+			toast.textContent = message;
+			toast.classList.add("show");
+			window.clearTimeout(toastTimer);
+			toastTimer = window.setTimeout(() => toast.classList.remove("show"), 2000);
+		}
+
+		function applyFilters() {
+			const query = search.value.trim().toLowerCase();
+			let visible = 0;
+			feed.querySelectorAll(".post").forEach((post) => {
+				const matchesSearch = !query || `${post.textContent} ${post.dataset.search || ""}`.toLowerCase().includes(query);
+				const matchesView = currentView === "saved" ? post.classList.contains("saved") : currentView !== "townsquare" || post.dataset.local === "true";
+				const matchesFollowing = currentFeed !== "following" || following.has(post.dataset.author);
+				post.hidden = !(matchesSearch && matchesView && matchesFollowing);
+				if (!post.hidden) visible += 1;
+			});
+			emptyState.style.display = visible ? "none" : "block";
+		}
+
+		function setView(view) {
+			currentView = view;
+			currentFeed = "all";
+			viewTitle.textContent = view === "saved" ? "Saved" : view === "explore" ? "Explore" : view === "townsquare" ? "Townsquare" : "Home";
+			pageSubtitle.textContent = view === "townsquare" ? "Your neighborhood, one conversation at a time." : "Good things happen when we find each other.";
+			townSquareIntro.hidden = view !== "townsquare";
+			feedControls.hidden = view === "townsquare";
+			input.placeholder = view === "townsquare" ? "Share something happening nearby..." : "What's on your mind, Alex?";
+			document.querySelectorAll("[data-view]").forEach((button) => button.classList.toggle("active", button.dataset.view === view));
+			document.querySelectorAll("[data-filter]").forEach((button) => {
+				const active = button.dataset.filter === "all";
+				button.classList.toggle("active", active);
+				button.setAttribute("aria-selected", String(active));
+			});
+			if (view === "explore") search.focus();
+			applyFilters();
+		}
+
+		document.querySelectorAll("[data-view]").forEach((button) => button.addEventListener("click", () => setView(button.dataset.view)));
+		document.querySelectorAll("[data-coming-soon]").forEach((button) => button.addEventListener("click", () => showToast("This section is coming soon")));
+		document.querySelectorAll("[data-filter]").forEach((button) => button.addEventListener("click", () => {
+			currentView = "home";
+			currentFeed = button.dataset.filter;
+			viewTitle.textContent = currentFeed === "following" ? "Your people, first." : "Your circle, in sync.";
+			document.querySelectorAll("[data-filter]").forEach((item) => {
+				const active = item.dataset.filter === currentFeed;
+				item.classList.toggle("active", active);
+				item.setAttribute("aria-selected", String(active));
+			});
+			applyFilters();
+		}));
+		document.querySelectorAll("[data-focus-composer]").forEach((button) => button.addEventListener("click", () => {
+			input.focus();
+			document.querySelector(".composer").scrollIntoView({ behavior: "smooth", block: "center" });
+		}));
+		document.querySelectorAll("[data-follow]").forEach((button) => button.addEventListener("click", () => {
+			const isFollowing = following.has(button.dataset.follow);
+			if (isFollowing) following.delete(button.dataset.follow);
+			else following.add(button.dataset.follow);
+			button.classList.toggle("following", !isFollowing);
+			button.textContent = isFollowing ? "Follow" : "Following";
+			applyFilters();
+		}));
+		document.querySelectorAll("[data-topic]").forEach((button) => button.addEventListener("click", () => {
+			search.value = button.dataset.topic;
+			setView("explore");
+			applyFilters();
+		}));
+		search.addEventListener("input", applyFilters);
+
+		feed.addEventListener("click", async (event) => {
+			const button = event.target.closest("button[data-action]");
+			if (!button) return;
+			const post = button.closest(".post");
+			if (button.dataset.action === "like") {
+				const liked = button.getAttribute("aria-pressed") === "true";
+				const count = button.querySelector("[data-count]");
+				count.textContent = String(Number(count.textContent) + (liked ? -1 : 1));
+				button.setAttribute("aria-pressed", String(!liked));
+				button.classList.toggle("liked", !liked);
+				button.querySelector(".action-icon").textContent = liked ? "♡" : "♥";
+				button.querySelector("[data-label]").textContent = liked ? "Like" : "Liked";
+			} else if (button.dataset.action === "save") {
+				const saved = post.classList.toggle("saved");
+				button.setAttribute("aria-pressed", String(saved));
+				button.classList.toggle("saved", saved);
+				button.querySelector("[data-label]").textContent = saved ? "Saved" : "Save";
+				showToast(saved ? "Added to saved posts" : "Removed from saved posts");
+				applyFilters();
+			} else if (button.dataset.action === "reply") {
+				showToast("Replies are coming soon");
+			} else if (button.dataset.action === "share") {
+				try {
+					await navigator.clipboard.writeText(window.location.href);
+					showToast("Page link copied");
+				} catch {
+					showToast("Sharing is not available in this browser");
+				}
+			}
+		});
 
 		form.addEventListener("submit", (event) => {
 			event.preventDefault();
@@ -80,16 +300,66 @@
 			if (!text) return;
 
 			const post = document.createElement("article");
-			const author = document.createElement("p");
-			const message = document.createElement("p");
-			author.className = "author";
-			author.textContent = "You";
-			message.className = "post-text";
-			message.textContent = text;
-			post.append(author, message);
+			post.className = "post";
+			post.dataset.author = "you";
+			post.dataset.search = text.toLowerCase();
+			if (currentView === "townsquare") post.dataset.local = "true";
+			const header = document.createElement("header");
+			header.className = "post-header";
+			const avatar = document.createElement("img");
+			avatar.className = "avatar post-avatar";
+			avatar.src = "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&q=80";
+			avatar.alt = "";
+			const identity = document.createElement("div");
+			identity.className = "post-identity";
+			identity.innerHTML = '<div class="name-line"><span class="post-name">Alex Morgan</span><span class="post-handle">@alexm</span><span class="post-time">· now</span></div>';
+			header.append(avatar, identity);
+			const copy = document.createElement("p");
+			copy.className = "post-copy";
+			copy.textContent = text;
+			const actions = document.createElement("div");
+			actions.className = "post-actions";
+			actions.innerHTML = '<button class="action" type="button" data-action="like" aria-pressed="false"><span class="action-icon">♡</span><span data-count>0</span><span data-label>Like</span></button><button class="action" type="button" data-action="reply"><span>◌</span><span>Reply</span></button><button class="action" type="button" data-action="share"><span>↗</span><span>Share</span></button><button class="action" type="button" data-action="save" aria-label="Save post" aria-pressed="false"><span>▱</span><span data-label>Save</span></button>';
+			post.append(header, copy, actions);
 			feed.prepend(post);
 			form.reset();
+			currentView = "home";
+			currentFeed = "all";
+			applyFilters();
+			showToast("Shared with your circle");
 		});
+
+		let preferences = JSON.parse(localStorage.getItem("unison-preferences") || "{}");
+		function savePreference(key, value) {
+			preferences = { ...preferences, [key]: value };
+			localStorage.setItem("unison-preferences", JSON.stringify(preferences));
+		}
+		if (preferences.accent) document.body.dataset.accent = preferences.accent;
+		if (preferences.theme) document.body.dataset.theme = preferences.theme;
+		if (preferences.compact) document.body.classList.add("compact");
+		document.querySelectorAll("[data-accent-choice]").forEach((button) => {
+			button.setAttribute("aria-pressed", String(button.dataset.accentChoice === (preferences.accent || "coral")));
+			button.addEventListener("click", () => {
+				document.body.dataset.accent = button.dataset.accentChoice;
+				document.querySelectorAll("[data-accent-choice]").forEach((item) => item.setAttribute("aria-pressed", String(item === button)));
+				savePreference("accent", button.dataset.accentChoice);
+			});
+		});
+		document.querySelectorAll("[data-theme-choice]").forEach((button) => {
+			button.setAttribute("aria-pressed", String(button.dataset.themeChoice === (preferences.theme || "light")));
+			button.addEventListener("click", () => {
+				document.body.dataset.theme = button.dataset.themeChoice;
+				document.querySelectorAll("[data-theme-choice]").forEach((item) => item.setAttribute("aria-pressed", String(item === button)));
+				savePreference("theme", button.dataset.themeChoice);
+			});
+		});
+		const compact = document.querySelector("#compact-mode");
+		compact.checked = Boolean(preferences.compact);
+		compact.addEventListener("change", () => {
+			document.body.classList.toggle("compact", compact.checked);
+			savePreference("compact", compact.checked);
+		});
+		document.querySelector("#date-label").textContent = new Intl.DateTimeFormat("en", { weekday: "short", month: "short", day: "numeric" }).format(new Date());
 	</script>
 </body>
 </html>
