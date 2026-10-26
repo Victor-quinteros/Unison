@@ -9,7 +9,7 @@
 	<link rel="preconnect" href="https://fonts.googleapis.com">
 	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 	<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
-	<link rel="stylesheet" href="style.css?v=messaging-15">
+	<link rel="stylesheet" href="style.css?v=profile-style-17">
 </head>
 <body>
 	<!-- 02. Global navigation -->
@@ -23,7 +23,16 @@
 				<button class="icon-button" type="button" data-view="explore" aria-label="Explore">⌕</button>
 				<button class="icon-button" type="button" data-coming-soon aria-label="Marketplace">▤</button>
 			</nav>
-			<button class="header-account" id="account-button" type="button"><img class="avatar" src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&q=80" alt=""><span id="account-label">Sign in</span><span class="chevron" aria-hidden="true">⌄</span></button>
+			<div class="account-menu-container">
+				<button class="header-account" id="account-button" type="button" aria-haspopup="menu" aria-expanded="false" aria-controls="account-dropdown"><img class="avatar" src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&q=80" alt=""><span id="account-label">Sign in</span><span class="chevron" aria-hidden="true">⌄</span></button>
+				<div class="account-dropdown" id="account-dropdown" role="menu" aria-label="Account menu" hidden>
+					<p class="account-dropdown-email" id="account-dropdown-email"></p>
+					<button type="button" role="menuitem" id="menu-account">My account</button>
+					<button type="button" role="menuitem" id="menu-settings">Settings</button>
+					<div class="account-menu-divider" role="separator"></div>
+					<button type="button" role="menuitem" id="menu-signout">Sign out</button>
+				</div>
+			</div>
 		</div>
 	</header>
 	<!-- 03. Main application layout -->
@@ -55,22 +64,6 @@
 				</div>
 			</section>
 
-			<section class="customizer" aria-label="Appearance settings">
-				<h2 class="customizer-heading">Make it yours</h2>
-				<span class="control-label">Accent color</span>
-				<div class="swatches" role="group" aria-label="Accent color">
-					<button class="swatch coral" type="button" data-accent-choice="coral" aria-label="Coral accent" aria-pressed="true"></button>
-					<button class="swatch lime" type="button" data-accent-choice="lime" aria-label="Lime accent" aria-pressed="false"></button>
-					<button class="swatch blue" type="button" data-accent-choice="blue" aria-label="Blue accent" aria-pressed="false"></button>
-				</div>
-				<span class="control-label">Appearance</span>
-				<div class="segmented" role="group" aria-label="Appearance">
-					<button type="button" data-theme-choice="light" aria-pressed="true">Light</button>
-					<button type="button" data-theme-choice="dim" aria-pressed="false">Dim</button>
-				</div>
-				<label class="density-row" for="compact-mode"><span>Compact posts</span><input class="switch" id="compact-mode" type="checkbox" role="switch"></label>
-			</section>
-
 			<div class="account">
 				<img class="avatar" src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&q=80" alt="">
 				<div><span class="account-name" id="sidebar-account-name">Alex Morgan</span><span class="account-handle" id="sidebar-account-handle">@alexm</span></div>
@@ -98,11 +91,12 @@
 				<div class="search-groups-list" id="search-groups-list"></div>
 			</section>
 			<section class="profile-editor my-profile-page" id="my-profile-page" hidden aria-label="Edit your profile">
-				<div class="profile-photo-row"><img id="profile-avatar-preview" class="avatar profile-avatar-preview" alt="Profile picture preview"><label class="dialog-field">Profile picture<input id="profile-avatar-file" type="file" accept="image/*"></label></div>
+				<div class="profile-photo-row"><div class="profile-avatar-frame" id="profile-avatar-frame" data-border="none" data-sticker="none"><img id="profile-avatar-preview" class="avatar profile-avatar-preview" alt="Profile picture preview"><span class="profile-sticker" id="profile-avatar-sticker" aria-hidden="true" hidden></span></div><label class="dialog-field">Profile picture<input id="profile-avatar-file" type="file" accept="image/*"></label></div>
 				<p class="dialog-copy" id="my-profile-email"></p>
 				<label class="dialog-field">Display name<input id="profile-display-name" type="text" maxlength="60" autocomplete="name"></label>
 				<label class="dialog-field">Handle<input id="profile-handle" type="text" maxlength="24" autocomplete="username" pattern="[A-Za-z0-9_]+"></label>
 				<label class="dialog-field">About you<textarea id="profile-bio" maxlength="240" rows="3" placeholder="A little about yourself"></textarea></label>
+				<fieldset class="profile-customization"><legend>Profile customization</legend><label class="dialog-field">Avatar border<select id="profile-border"><option value="none">No border</option><option value="coral">Coral</option><option value="gold">Gold</option><option value="rainbow">Rainbow</option></select></label><label class="dialog-field">Profile sticker<select id="profile-sticker"><option value="none">No sticker</option><option value="star">⭐ Star</option><option value="flower">🌸 Flower</option><option value="sparkle">✨ Sparkle</option><option value="fire">🔥 Fire</option></select></label></fieldset>
 				<button class="dialog-primary" id="profile-save" type="button">Save profile</button>
 			</section>
 			<section class="messages-page" id="messages-page" hidden aria-label="Messages">
@@ -118,6 +112,29 @@
 					<form class="message-form" id="message-form"><textarea id="message-input" maxlength="5000" rows="2" placeholder="Write a message..." aria-label="Write a message" required></textarea><button class="dialog-primary" type="submit">Send</button></form>
 				</div>
 			</section>
+			</section>
+			<section class="settings-page" id="settings-page" hidden aria-label="Settings">
+				<section class="settings-panel appearance-settings" aria-labelledby="appearance-heading">
+					<h2 id="appearance-heading">Appearance</h2>
+					<p>Choose the look and reading density that feels right for you.</p>
+					<span class="control-label">Accent color</span>
+					<div class="swatches" role="group" aria-label="Accent color">
+						<button class="swatch coral" type="button" data-accent-choice="coral" aria-label="Coral accent" aria-pressed="true"></button>
+						<button class="swatch lime" type="button" data-accent-choice="lime" aria-label="Lime accent" aria-pressed="false"></button>
+						<button class="swatch blue" type="button" data-accent-choice="blue" aria-label="Blue accent" aria-pressed="false"></button>
+					</div>
+					<span class="control-label">Theme</span>
+					<div class="segmented" role="group" aria-label="Theme">
+						<button type="button" data-theme-choice="light" aria-pressed="true">Light</button>
+						<button type="button" data-theme-choice="dim" aria-pressed="false">Dim</button>
+					</div>
+					<label class="density-row" for="compact-mode"><span>Compact posts</span><input class="switch" id="compact-mode" type="checkbox" role="switch"></label>
+				</section>
+				<section class="settings-panel account-settings" aria-labelledby="account-settings-heading">
+					<h2 id="account-settings-heading">Account</h2>
+					<p id="settings-account-email"></p>
+					<button class="dialog-primary" id="settings-profile" type="button">Manage my profile</button>
+				</section>
 			</section>
 
 			<form class="composer" id="post-form">
@@ -153,7 +170,7 @@
 			<template id="post-template">
 				<article class="post">
 					<header class="post-header">
-						<button class="post-avatar-link" type="button" data-profile-link aria-label="Open author profile"><img class="avatar post-avatar" data-field="avatar" alt=""></button>
+						<button class="post-avatar-link" type="button" data-profile-link aria-label="Open author profile"><span class="profile-avatar-frame" data-field="avatar-frame" data-border="none" data-sticker="none"><img class="avatar post-avatar" data-field="avatar" alt=""><span class="profile-sticker" data-field="sticker" aria-hidden="true" hidden></span></span></button>
 						<div class="post-identity"><div class="name-line"><button class="post-profile-link" type="button" data-profile-link><span class="post-name" data-field="author"></span><span class="post-handle" data-field="handle"></span></button><span class="post-time" data-field="time"></span></div></div>
 						<button class="post-menu" type="button" data-action="menu" aria-label="More post options">···</button>
 					</header>
@@ -251,7 +268,7 @@
 		<div class="dialog-content">
 			<button class="dialog-close" type="button" data-close-dialog aria-label="Close">×</button>
 			<p class="dialog-eyebrow">UNISON MEMBER</p>
-			<div class="public-profile-header"><img class="avatar public-profile-avatar" id="public-profile-avatar" alt=""><div><h2 id="public-profile-name">Member profile</h2><p class="profile-handle" id="public-profile-handle"></p></div></div>
+			<div class="public-profile-header"><div class="profile-avatar-frame public-profile-frame" id="public-profile-frame" data-border="none" data-sticker="none"><img class="avatar public-profile-avatar" id="public-profile-avatar" alt=""><span class="profile-sticker" id="public-profile-sticker" aria-hidden="true" hidden></span></div><div><h2 id="public-profile-name">Member profile</h2><p class="profile-handle" id="public-profile-handle"></p></div></div>
 			<p class="public-profile-bio" id="public-profile-bio"></p>
 			<button class="follow profile-follow" id="public-profile-follow" type="button" hidden>Follow</button>
 			<button class="dialog-primary profile-message" id="public-profile-message" type="button" hidden>Message</button>
@@ -263,7 +280,7 @@
 	<!-- 07. Application scripts -->
 	<script src="supabase-config.js"></script>
 	<script src="posts.js"></script>
-	<script src="api.js?v=messaging-15"></script>
-	<script src="script.js?v=messaging-15"></script>
+	<script src="api.js?v=profile-style-17"></script>
+	<script src="script.js?v=profile-style-17"></script>
 </body>
 </html>

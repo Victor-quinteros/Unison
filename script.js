@@ -24,6 +24,9 @@
 	const profileDialog = document.querySelector("#profile-dialog");
 	const messagesPage = document.querySelector("#messages-page");
 	const messageForm = document.querySelector("#message-form");
+	const settingsPage = document.querySelector("#settings-page");
+	const accountButton = document.querySelector("#account-button");
+	const accountDropdown = document.querySelector("#account-dropdown");
 	let currentView = "home";
 	let currentFeed = "all";
 	let lastRouteHash = "";
@@ -39,7 +42,26 @@
 	let currentProfile = null;
 	let activeConversation = null;
 	const fallbackAvatar = "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&q=80";
-	let appearance = { accent: "coral", theme: "light", compact: false };
+	const profileStickerGlyphs = { star: "⭐", flower: "🌸", sparkle: "✨", fire: "🔥" };
+	function applyProfileDecoration(frame, border = "none", sticker = "none") {
+		if (!frame) return;
+		frame.dataset.border = ["none", "coral", "gold", "rainbow"].includes(border) ? border : "none";
+		frame.dataset.sticker = profileStickerGlyphs[sticker] ? sticker : "none";
+		const marker = frame.querySelector(".profile-sticker");
+		if (marker) { marker.textContent = profileStickerGlyphs[sticker] || ""; marker.hidden = !profileStickerGlyphs[sticker]; }
+	}
+	function loadAppearance() {
+		try {
+			const saved = JSON.parse(window.localStorage.getItem("unison.appearance") || "null");
+			return { accent: ["coral", "lime", "blue"].includes(saved?.accent) ? saved.accent : "coral", theme: saved?.theme === "dim" ? "dim" : "light", compact: Boolean(saved?.compact) };
+		} catch {
+			return { accent: "coral", theme: "light", compact: false };
+		}
+	}
+	let appearance = loadAppearance();
+	function saveAppearance() {
+		try { window.localStorage.setItem("unison.appearance", JSON.stringify(appearance)); } catch { /* Keep settings for this page session. */ }
+	}
 
 	function showToast(message) {
 		toast.textContent = message;
@@ -92,6 +114,9 @@
 			document.querySelector("#profile-handle").value = currentProfile.handle || "";
 			document.querySelector("#profile-bio").value = currentProfile.bio || "";
 			document.querySelector("#profile-avatar-preview").src = currentProfile.avatar_url || fallbackAvatar;
+			document.querySelector("#profile-border").value = currentProfile.avatar_border || "none";
+			document.querySelector("#profile-sticker").value = currentProfile.profile_sticker || "none";
+			applyProfileDecoration(document.querySelector("#profile-avatar-frame"), currentProfile.avatar_border, currentProfile.profile_sticker);
 			document.querySelector("#my-profile-email").textContent = window.UnisonAuth.getUser().email || "";
 		}
 		return currentProfile;
@@ -121,6 +146,7 @@
 		}
 
 		post.querySelector('[data-field="avatar"]').src = postData.avatar || fallbackAvatar;
+		applyProfileDecoration(post.querySelector('[data-field="avatar-frame"]'), postData.avatarBorder, postData.profileSticker);
 		post.querySelectorAll("[data-profile-link]").forEach((profileLink) => {
 			profileLink.dataset.profileId = postData.userId || "";
 			profileLink.dataset.profileHandle = postData.handle || "";
@@ -358,6 +384,7 @@
 			handle.textContent = profile.handle ? `@${profile.handle}` : "@member";
 			bio.textContent = profile.bio || "";
 			avatar.src = profile.avatar_url || fallbackAvatar;
+			applyProfileDecoration(document.querySelector("#public-profile-frame"), profile.avatar_border, profile.profile_sticker);
 			const signedInUser = window.UnisonAuth.getUser();
 			if (profile.id && signedInUser && profile.id !== signedInUser.id) {
 				message.hidden = false;
@@ -606,7 +633,7 @@
 		}
 		currentView = view;
 		currentFeed = view === "my-posts" ? "mine" : "all";
-		viewTitle.textContent = view === "messages" ? "Messages" : view === "search" ? "Search results" : view === "my-profile" ? "My Profile" : view === "my-posts" ? "My posts" : view === "saved" ? "Saved" : view === "explore" ? "Explore" : view === "townsquare" ? "Townsquare" : view === "community" ? "Community feed" : "Home";
+		viewTitle.textContent = view === "settings" ? "Settings" : view === "messages" ? "Messages" : view === "search" ? "Search results" : view === "my-profile" ? "My Profile" : view === "my-posts" ? "My posts" : view === "saved" ? "Saved" : view === "explore" ? "Explore" : view === "townsquare" ? "Townsquare" : view === "community" ? "Community feed" : "Home";
 		if (!window.UnisonAuth.getUser()) {
 			if (view === "community") pageSubtitle.textContent = "Public community posts are visible to everyone.";
 			authGate.querySelector("h2").textContent = view === "community" ? "Public community feed" : "Take a look around";
@@ -614,15 +641,19 @@
 		}
 		pageSubtitle.textContent = view === "search" ? `Posts matching “${search.value.trim()}”` : view === "my-profile" ? "Manage your picture and the information people see on your profile." : view === "my-posts" ? "Everything you have shared with your circle." : view === "townsquare" ? "Your neighborhood, one conversation at a time." : view === "community" ? "Posts shared with every signed-in member." : "Good things happen when we find each other.";
 		if (view === "messages") pageSubtitle.textContent = "Private conversations between you and other members.";
-		document.querySelector("#today-label").textContent = view === "search" ? "SEARCH YOUR CIRCLE" : view === "my-profile" ? "YOUR PUBLIC PROFILE" : view === "community" ? "SHARED WITH THE COMMUNITY" : "YOUR PEOPLE, YOUR PACE";
+		if (view === "settings") pageSubtitle.textContent = "Personalize how Unison looks and manage your account.";
+		document.querySelector("#today-label").textContent = view === "settings" ? "MAKE UNISON YOURS" : view === "search" ? "SEARCH YOUR CIRCLE" : view === "my-profile" ? "YOUR PUBLIC PROFILE" : view === "community" ? "SHARED WITH THE COMMUNITY" : "YOUR PEOPLE, YOUR PACE";
 		if (view === "community") pageSubtitle.textContent = "Public community posts are visible to everyone.";
 		document.querySelector("#home").classList.toggle("search-mode", view === "search");
 		document.querySelector("#home").classList.toggle("profile-mode", view === "my-profile");
 		document.querySelector("#home").classList.toggle("messages-mode", view === "messages");
+		document.querySelector("#home").classList.toggle("settings-mode", view === "settings");
 		document.querySelector("#my-profile-page").hidden = view !== "my-profile";
 		messagesPage.hidden = view !== "messages";
+		settingsPage.hidden = view !== "settings";
+		if (view === "settings") document.querySelector("#settings-account-email").textContent = window.UnisonAuth.getUser()?.email || "";
 		townSquareIntro.hidden = view !== "townsquare";
-		feedControls.hidden = view === "townsquare" || view === "community" || view === "search" || view === "my-profile" || view === "messages";
+		feedControls.hidden = view === "townsquare" || view === "community" || view === "search" || view === "my-profile" || view === "messages" || view === "settings";
 		input.placeholder = view === "townsquare" ? "Share something happening nearby..." : view === "community" ? "Share with the community..." : "What's on your mind, Alex?";
 		postScope.value = view === "community" ? "community" : "home";
 		document.querySelector("#post-destination").hidden = view === "townsquare" || view === "community";
@@ -651,6 +682,7 @@
 			if (activeConversation) refreshMessageHistory().catch((error) => showToast(error.message));
 			return;
 		}
+		if (view === "settings") return;
 		refreshSupabaseFeed().catch((error) => showToast(error.message));
 	}
 
@@ -695,18 +727,16 @@
 		password.minLength = createAccount ? 8 : 0;
 	}
 
-	document.querySelector("#account-button").addEventListener("click", () => {
+	function closeAccountDropdown() {
+		accountDropdown.hidden = true;
+		accountButton.setAttribute("aria-expanded", "false");
+	}
+	accountButton.addEventListener("click", () => {
 		const user = window.UnisonAuth.getUser();
 		if (user) {
-			setAuthMode(false);
-			document.querySelector("#auth-title").textContent = "Your account";
-			document.querySelector("#auth-message").textContent = `Signed in as ${user.email}.`;
-			document.querySelector("#auth-email").closest(".dialog-field").hidden = true;
-			document.querySelector("#auth-password").closest(".dialog-field").hidden = true;
-			document.querySelector("#auth-submit").hidden = true;
-			document.querySelector("#auth-mode-toggle").hidden = true;
-			document.querySelector("#auth-signout").hidden = false;
-			if (!authDialog.open) authDialog.showModal();
+			document.querySelector("#account-dropdown-email").textContent = user.email || "Signed in";
+			accountDropdown.hidden = !accountDropdown.hidden;
+			accountButton.setAttribute("aria-expanded", String(!accountDropdown.hidden));
 			return;
 		}
 		document.querySelector("#auth-email").closest(".dialog-field").hidden = false;
@@ -715,6 +745,19 @@
 		document.querySelector("#auth-mode-toggle").hidden = false;
 		setAuthMode(false);
 		openAuthDialog();
+	});
+	document.querySelector("#menu-account").addEventListener("click", () => { closeAccountDropdown(); setView("my-profile"); });
+	document.querySelector("#menu-settings").addEventListener("click", () => { closeAccountDropdown(); setView("settings"); });
+	document.querySelector("#menu-signout").addEventListener("click", () => {
+		closeAccountDropdown();
+		document.querySelector("#auth-signout").click();
+	});
+	document.querySelector("#settings-profile").addEventListener("click", () => setView("my-profile"));
+	document.addEventListener("click", (event) => {
+		if (!event.target.closest(".account-menu-container")) closeAccountDropdown();
+	});
+	document.addEventListener("keydown", (event) => {
+		if (event.key === "Escape") closeAccountDropdown();
 	});
 	document.querySelector("#gate-signin").addEventListener("click", () => openAuthDialog("Sign in to see the community feed."));
 	document.querySelector("#gate-signup").addEventListener("click", () => {
@@ -730,11 +773,15 @@
 		}
 		document.querySelector("#profile-avatar-preview").src = URL.createObjectURL(file);
 	});
+	document.querySelector("#profile-border").addEventListener("change", (event) => applyProfileDecoration(document.querySelector("#profile-avatar-frame"), event.currentTarget.value, document.querySelector("#profile-sticker").value));
+	document.querySelector("#profile-sticker").addEventListener("change", (event) => applyProfileDecoration(document.querySelector("#profile-avatar-frame"), document.querySelector("#profile-border").value, event.currentTarget.value));
 	document.querySelector("#profile-save").addEventListener("click", async (event) => {
 		const button = event.currentTarget;
 		const displayName = document.querySelector("#profile-display-name").value.trim();
 		const handle = document.querySelector("#profile-handle").value.trim().replace(/^@/, "");
 		const bio = document.querySelector("#profile-bio").value.trim();
+		const avatarBorder = document.querySelector("#profile-border").value;
+		const profileSticker = document.querySelector("#profile-sticker").value;
 		const photo = document.querySelector("#profile-avatar-file").files[0];
 		if (!displayName) return showToast("Add a display name.");
 		if (!/^[A-Za-z0-9_]{2,24}$/.test(handle)) return showToast("Use 2–24 letters, numbers, or underscores for your handle.");
@@ -743,9 +790,10 @@
 		try {
 			let avatarUrl = currentProfile?.avatar_url || "";
 			if (photo) avatarUrl = await window.UnisonApi.uploadProfileImage(photo);
-			currentProfile = await window.UnisonApi.updateMyProfile({ handle, displayName, bio, avatarUrl });
+			currentProfile = await window.UnisonApi.updateMyProfile({ handle, displayName, bio, avatarUrl, avatarBorder, profileSticker });
 			updateAccount(window.UnisonAuth.getUser(), currentProfile);
 			document.querySelector("#profile-avatar-preview").src = currentProfile.avatar_url || fallbackAvatar;
+			applyProfileDecoration(document.querySelector("#profile-avatar-frame"), currentProfile.avatar_border, currentProfile.profile_sticker);
 			document.querySelector("#profile-avatar-file").value = "";
 			await Promise.all([refreshSupabaseFeed(), refreshPeople(), refreshStories()]);
 			showToast("Profile saved.");
@@ -1252,15 +1300,17 @@
 		}
 	});
 
-	// 05. Session-only appearance controls
+	// 05. Saved appearance controls
 	document.body.dataset.accent = appearance.accent;
 	document.body.dataset.theme = appearance.theme;
+	document.body.classList.toggle("compact", appearance.compact);
 	document.querySelectorAll("[data-accent-choice]").forEach((button) => {
 		button.setAttribute("aria-pressed", String(button.dataset.accentChoice === appearance.accent));
 		button.addEventListener("click", () => {
 			appearance.accent = button.dataset.accentChoice;
 			document.body.dataset.accent = appearance.accent;
 			document.querySelectorAll("[data-accent-choice]").forEach((item) => item.setAttribute("aria-pressed", String(item === button)));
+			saveAppearance();
 		});
 	});
 	document.querySelectorAll("[data-theme-choice]").forEach((button) => {
@@ -1269,6 +1319,7 @@
 			appearance.theme = button.dataset.themeChoice;
 			document.body.dataset.theme = appearance.theme;
 			document.querySelectorAll("[data-theme-choice]").forEach((item) => item.setAttribute("aria-pressed", String(item === button)));
+			saveAppearance();
 		});
 	});
 	document.querySelectorAll("[data-accent-choice]").forEach((button) => {
@@ -1279,5 +1330,6 @@
 	compact.addEventListener("change", () => {
 		appearance.compact = compact.checked;
 		document.body.classList.toggle("compact", compact.checked);
+		saveAppearance();
 	});
 	document.querySelector("#date-label").textContent = new Intl.DateTimeFormat("en", { weekday: "short", month: "short", day: "numeric" }).format(new Date());

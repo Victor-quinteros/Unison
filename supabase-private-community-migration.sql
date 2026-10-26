@@ -1,6 +1,13 @@
 -- Run in the Supabase SQL Editor. Existing posts remain public to signed-in
 -- members. Only public posts placed in the Community feed are visible to guests.
 
+alter table public.profiles add column if not exists avatar_border text not null default 'none';
+alter table public.profiles add column if not exists profile_sticker text not null default 'none';
+alter table public.profiles drop constraint if exists profiles_avatar_border_check;
+alter table public.profiles add constraint profiles_avatar_border_check check (avatar_border in ('none', 'coral', 'gold', 'rainbow'));
+alter table public.profiles drop constraint if exists profiles_profile_sticker_check;
+alter table public.profiles add constraint profiles_profile_sticker_check check (profile_sticker in ('none', 'star', 'flower', 'sparkle', 'fire'));
+
 create table if not exists public.messages (
 	id uuid primary key default gen_random_uuid(),
 	sender_id uuid not null references public.profiles (id) on delete cascade,

@@ -154,6 +154,8 @@ async function mapPost(row) {
 		id: row.id,
 		userId: row.user_id,
 		visibility: row.visibility || "public",
+		avatarBorder: profile.avatar_border || "none",
+		profileSticker: profile.profile_sticker || "none",
 		author: profile.display_name || "Unison member",
 		handle: profile.handle ? `@${profile.handle}` : "@member",
 		time: new Intl.RelativeTimeFormat("en", { numeric: "auto" }).format(-Math.max(1, Math.floor((Date.now() - new Date(row.created_at).getTime()) / 3600000)), "hour"),
@@ -175,7 +177,7 @@ async function mapPost(row) {
 function postSelect() {
 	const fields = [
 		"id", "user_id", "body", "scope", "visibility", "image_path", "created_at",
-		"profiles!posts_user_id_fkey(display_name,handle,avatar_url)"
+		"profiles!posts_user_id_fkey(display_name,handle,avatar_url,avatar_border,profile_sticker)"
 	];
 	if (supabaseSession) fields.push("post_likes(user_id)", "post_comments(id)", "saved_posts(user_id)");
 	return fields.join(",");
@@ -298,7 +300,7 @@ window.UnisonApi = Object.freeze({
 	async listPeople() {
 		await requireSession();
 		const params = new URLSearchParams({
-			select: "id,handle,display_name,avatar_url,bio",
+			select: "id,handle,display_name,avatar_url,bio,avatar_border,profile_sticker",
 			order: "created_at.desc",
 			limit: "8"
 		});
@@ -311,7 +313,7 @@ window.UnisonApi = Object.freeze({
 		const safeQuery = String(query || "").replace(/[(),%_*]/g, " ").trim();
 		if (!safeQuery) return [];
 		const params = new URLSearchParams({
-			select: "id,handle,display_name,avatar_url,bio",
+			select: "id,handle,display_name,avatar_url,bio,avatar_border,profile_sticker",
 			order: "display_name.asc",
 			limit: "12",
 			or: `(display_name.ilike.*${safeQuery}*,handle.ilike.*${safeQuery}*,bio.ilike.*${safeQuery}*)`
@@ -333,7 +335,7 @@ window.UnisonApi = Object.freeze({
 	},
 	async getMyProfile() {
 		const session = await requireSession();
-		const params = new URLSearchParams({ select: "id,handle,display_name,avatar_url,bio", id: `eq.${session.user.id}`, limit: "1" });
+		const params = new URLSearchParams({ select: "id,handle,display_name,avatar_url,bio,avatar_border,profile_sticker", id: `eq.${session.user.id}`, limit: "1" });
 		const rows = await supabaseRequest(`profiles?${params}`, { auth: true });
 		if (!rows[0]) return null;
 		return { ...rows[0], avatar_url: await profileAvatarUrl(rows[0].avatar_url) };
@@ -341,7 +343,7 @@ window.UnisonApi = Object.freeze({
 	async getPublicProfile(userId) {
 		const auth = Boolean(supabaseSession);
 		if (auth) await requireSession();
-		const params = new URLSearchParams({ select: "id,handle,display_name,avatar_url,bio", id: `eq.${userId}`, limit: "1" });
+		const params = new URLSearchParams({ select: "id,handle,display_name,avatar_url,bio,avatar_border,profile_sticker", id: `eq.${userId}`, limit: "1" });
 		const rows = await supabaseRequest(`profiles?${params}`, { auth });
 		if (!rows[0]) return null;
 		return { ...rows[0], avatar_url: await profileAvatarUrl(rows[0].avatar_url).catch(() => "") };
@@ -380,13 +382,13 @@ window.UnisonApi = Object.freeze({
 		});
 		return rows[0];
 	},
-	async updateMyProfile({ handle, displayName, bio, avatarUrl }) {
+	async updateMyProfile({ handle, displayName, bio, avatarUrl, avatarBorder = "none", profileSticker = "none" }) {
 		const session = await requireSession();
 		const params = new URLSearchParams({ id: `eq.${session.user.id}` });
-		const rows = await supabaseRequest(`profiles?${params}&select=id,handle,display_name,avatar_url,bio`, {
+		const rows = await supabaseRequest(`profiles?${params}&select=id,handle,display_name,avatar_url,bio,avatar_border,profile_sticker`, {
 			method: "PATCH", auth: true,
 			headers: { Prefer: "return=representation" },
-			body: { handle, display_name: displayName, bio, avatar_url: avatarUrl }
+			body: { handle, display_name: displayName, bio, avatar_url: avatarUrl, avatar_border: avatarBorder, profile_sticker: profileSticker }
 		});
 		return rows[0];
 	},
