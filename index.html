@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<title>Unison</title>
+	<style>
+		body {
+			max-width: 640px;
+			margin: 40px auto;
+			padding: 0 18px;
+			background: #f5f7f2;
+			color: #20332a;
+			font-family: Arial, sans-serif;
+		}
+
+		h1 { color: #e4694f; }
+		form, article {
+			margin: 16px 0;
+			padding: 16px;
+			border: 1px solid #e1e7df;
+			border-radius: 8px;
+			background: white;
+		}
+
+		textarea {
+			width: 100%;
+			min-height: 70px;
+			padding: 8px;
+			border: 1px solid #dce3da;
+			border-radius: 4px;
+			box-sizing: border-box;
+			font: inherit;
+		}
+
+		button {
+			margin-top: 10px;
+			padding: 9px 16px;
+			border: 0;
+			border-radius: 4px;
+			background: #20332a;
+			color: white;
+			cursor: pointer;
+		}
+
+		button:hover { background: #385344; }
+		.author { margin: 0; font-weight: bold; }
+		.post-text { line-height: 1.5; overflow-wrap: anywhere; }
+	</style>
+</head>
+<body>
+	<header>
+		<h1>Unison</h1>
+		<p>A little more together.</p>
+	</header>
+
+	<main>
+		<form id="post-form">
+			<label for="post-text">Share something with your people</label>
+			<textarea id="post-text" maxlength="500" placeholder="What's on your mind?" required></textarea>
+			<button type="submit">Post</button>
+		</form>
+
+		<section id="feed" aria-label="Your feed">
+			<article>
+				<p class="author">Maya Chen</p>
+				<p class="post-text">Found a quiet little corner of the city this morning. Hope you find a moment for yourself today, too.</p>
+			</article>
+		</section>
+	</main>
+
+	<script>
+		const form = document.querySelector("#post-form");
+		const input = document.querySelector("#post-text");
+		const feed = document.querySelector("#feed");
+
+		form.addEventListener("submit", (event) => {
+			event.preventDefault();
+			const text = input.value.trim();
+			if (!text) return;
+
+			const post = document.createElement("article");
+			const author = document.createElement("p");
+			const message = document.createElement("p");
+			author.className = "author";
+			author.textContent = "You";
+			message.className = "post-text";
+			message.textContent = text;
+			post.append(author, message);
+			feed.prepend(post);
+			form.reset();
+		});
+	</script>
+</body>
+</html>
