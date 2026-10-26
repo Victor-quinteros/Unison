@@ -299,11 +299,14 @@
 		document.querySelector("#auth-title").textContent = createAccount ? "Create your account" : "Sign in";
 		document.querySelector("#auth-submit").textContent = createAccount ? "Create account" : "Sign in";
 		document.querySelector("#auth-mode-toggle").textContent = createAccount ? "Already have an account? Sign in" : "Create an account";
+		document.querySelector("#auth-message").textContent = createAccount ? "Join your circle and share what matters." : "Sign in to post, like, save, and join groups.";
 		document.querySelector("#auth-handle-field").hidden = !createAccount;
 		document.querySelector("#auth-name-field").hidden = !createAccount;
 		document.querySelector("#auth-handle").required = createAccount;
 		document.querySelector("#auth-name").required = createAccount;
-		document.querySelector("#auth-password").autocomplete = createAccount ? "new-password" : "current-password";
+		const password = document.querySelector("#auth-password");
+		password.autocomplete = createAccount ? "new-password" : "current-password";
+		password.minLength = createAccount ? 8 : 0;
 	}
 
 	document.querySelector("#account-button").addEventListener("click", () => {
@@ -389,10 +392,15 @@
 	document.querySelector("#auth-form").addEventListener("submit", async (event) => {
 		event.preventDefault();
 		if (!window.UnisonApi.isConfigured()) return openAuthDialog();
+		const submit = document.querySelector("#auth-submit");
+		const message = document.querySelector("#auth-message");
 		const credentials = {
 			email: document.querySelector("#auth-email").value,
 			password: document.querySelector("#auth-password").value
 		};
+		submit.disabled = true;
+		submit.textContent = signUpMode ? "Creating account…" : "Signing in…";
+		message.textContent = signUpMode ? "Creating your account securely…" : "Checking your sign-in…";
 		try {
 			if (signUpMode) {
 				const result = await window.UnisonAuth.signUp({
@@ -420,7 +428,11 @@
 			await refreshPeople();
 			showToast("You are signed in.");
 		} catch (error) {
+			message.textContent = error.message || "We couldn’t sign you in. Check your details and try again.";
 			showToast(error.message);
+		} finally {
+			submit.disabled = false;
+			submit.textContent = signUpMode ? "Create account" : "Sign in";
 		}
 	});
 	document.querySelector("#auth-signout").addEventListener("click", async () => {
