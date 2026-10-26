@@ -132,6 +132,7 @@ body[data-theme="dim"][data-accent="coral"] { --accent: #ff927e; --accent-soft: 
 
 /* 05. Feed, stories, and post cards */
 main { min-width: 0; padding: 9px 0 60px; }
+main #post-form[hidden] { display: none !important; }
 main.signed-out .composer { display: none; }
 .auth-gate { display: grid; gap: 10px; padding: clamp(20px, 5vw, 42px); border: 1px solid var(--line); border-radius: 9px; background: var(--surface); box-shadow: var(--shadow); }
 .auth-gate[hidden] { display: none; }
