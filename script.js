@@ -21,7 +21,7 @@
 	const authDialog = document.querySelector("#auth-dialog");
 	const commentsDialog = document.querySelector("#comments-dialog");
 	const storyDialog = document.querySelector("#story-dialog");
-	const profileDialog = document.querySelector("#profile-dialog");
+	const publicProfilePage = document.querySelector("#public-profile-page");
 	const messagesPage = document.querySelector("#messages-page");
 	const messageForm = document.querySelector("#message-form");
 	const settingsPage = document.querySelector("#settings-page");
@@ -356,6 +356,7 @@
 
 	async function openPublicProfile(userId, rawHandle = "") {
 		const requestId = ++profileRequestId;
+		setView("public-profile");
 		const cleanHandle = String(rawHandle).replace(/^@/, "");
 		const name = document.querySelector("#public-profile-name");
 		const handle = document.querySelector("#public-profile-handle");
@@ -373,7 +374,6 @@
 		posts.replaceChildren(Object.assign(document.createElement("p"), { className: "profile-posts-empty", textContent: "Loading posts…" }));
 		follow.hidden = true;
 		message.hidden = true;
-		if (!profileDialog.open) profileDialog.showModal();
 		try {
 			let profile;
 			let profilePosts;
@@ -632,7 +632,7 @@
 	}
 
 	function setView(view) {
-		if (!window.UnisonAuth.getUser() && view !== "home" && view !== "community") {
+		if (!window.UnisonAuth.getUser() && view !== "home" && view !== "community" && view !== "public-profile") {
 			if (view !== "home") openAuthDialog("Sign in to browse posts and community features.");
 			return;
 		}
@@ -646,7 +646,7 @@
 		}
 		currentView = view;
 		currentFeed = view === "my-posts" ? "mine" : "all";
-		viewTitle.textContent = view === "account" ? "My account" : view === "settings" ? "Settings" : view === "messages" ? "Messages" : view === "search" ? "Search results" : view === "my-profile" ? "My Profile" : view === "my-posts" ? "My posts" : view === "saved" ? "Saved" : view === "explore" ? "Explore" : view === "townsquare" ? "Townsquare" : view === "community" ? "Community feed" : "Home";
+		viewTitle.textContent = view === "public-profile" ? "Member profile" : view === "account" ? "My account" : view === "settings" ? "Settings" : view === "messages" ? "Messages" : view === "search" ? "Search results" : view === "my-profile" ? "My Profile" : view === "my-posts" ? "My posts" : view === "saved" ? "Saved" : view === "explore" ? "Explore" : view === "townsquare" ? "Townsquare" : view === "community" ? "Community feed" : "Home";
 		if (!window.UnisonAuth.getUser()) {
 			if (view === "community") pageSubtitle.textContent = "Public community posts are visible to everyone.";
 			authGate.querySelector("h2").textContent = view === "community" ? "Public community feed" : "Take a look around";
@@ -654,6 +654,7 @@
 		}
 		pageSubtitle.textContent = view === "search" ? `Posts matching “${search.value.trim()}”` : view === "my-profile" ? "Manage your picture and the information people see on your profile." : view === "my-posts" ? "Everything you have shared with your circle." : view === "townsquare" ? "Your neighborhood, one conversation at a time." : view === "community" ? "Posts shared with every signed-in member." : "Good things happen when we find each other.";
 		if (view === "messages") pageSubtitle.textContent = "Private conversations between you and other members.";
+		if (view === "public-profile") pageSubtitle.textContent = "Profile, background, and posts.";
 		if (view === "settings") pageSubtitle.textContent = "Personalize how Unison looks.";
 		if (view === "account") pageSubtitle.textContent = "Manage your sign-in email and handle.";
 		document.querySelector("#today-label").textContent = view === "settings" ? "MAKE UNISON YOURS" : view === "search" ? "SEARCH YOUR CIRCLE" : view === "my-profile" ? "YOUR PUBLIC PROFILE" : view === "community" ? "SHARED WITH THE COMMUNITY" : "YOUR PEOPLE, YOUR PACE";
@@ -663,7 +664,9 @@
 		document.querySelector("#home").classList.toggle("messages-mode", view === "messages");
 		document.querySelector("#home").classList.toggle("settings-mode", view === "settings");
 		document.querySelector("#home").classList.toggle("account-mode", view === "account");
+		document.querySelector("#home").classList.toggle("public-profile-mode", view === "public-profile");
 		document.querySelector("#my-profile-page").hidden = view !== "my-profile";
+		publicProfilePage.hidden = view !== "public-profile";
 		accountPage.hidden = view !== "account";
 		messagesPage.hidden = view !== "messages";
 		settingsPage.hidden = view !== "settings";
@@ -676,7 +679,7 @@
 			}).catch((error) => showToast(error.message));
 		}
 		townSquareIntro.hidden = view !== "townsquare";
-		feedControls.hidden = view === "townsquare" || view === "community" || view === "search" || view === "my-profile" || view === "messages" || view === "settings" || view === "account";
+		feedControls.hidden = view === "townsquare" || view === "community" || view === "search" || view === "my-profile" || view === "messages" || view === "settings" || view === "account" || view === "public-profile";
 		input.placeholder = view === "townsquare" ? "Share something happening nearby..." : view === "community" ? "Share with the community..." : "What's on your mind, Alex?";
 		postScope.value = view === "community" ? "community" : "home";
 		document.querySelector("#post-destination").hidden = view === "townsquare" || view === "community";
@@ -705,7 +708,7 @@
 			if (activeConversation) refreshMessageHistory().catch((error) => showToast(error.message));
 			return;
 		}
-		if (view === "settings" || view === "account") return;
+		if (view === "settings" || view === "account" || view === "public-profile") return;
 		refreshSupabaseFeed().catch((error) => showToast(error.message));
 	}
 
@@ -1091,8 +1094,8 @@
 			handle: button.dataset.profileHandle,
 			avatar_url: button.dataset.profileAvatar
 		});
-		profileDialog.close();
 	});
+	document.querySelector("#profile-page-back").addEventListener("click", () => setView("home"));
 	document.querySelector("#messages-refresh").addEventListener("click", () => {
 		refreshConversations().catch((error) => showToast(error.message));
 		if (activeConversation) refreshMessageHistory().catch((error) => showToast(error.message));

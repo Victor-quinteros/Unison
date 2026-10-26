@@ -149,6 +149,7 @@ main.profile-mode > :not(.page-heading):not(#my-profile-page) { display: none; }
 main.messages-mode > :not(.page-heading):not(#messages-page) { display: none; }
 main.settings-mode > :not(.page-heading):not(#settings-page) { display: none; }
 main.account-mode > :not(.page-heading):not(#account-page) { display: none; }
+main.public-profile-mode > :not(.page-heading):not(#public-profile-page) { display: none; }
 .my-profile-page { gap: 14px; padding: 18px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); box-shadow: var(--shadow); }
 .my-profile-page[hidden] { display: none; }
 .settings-page { display: grid; gap: 12px; }
@@ -407,19 +408,24 @@ h1 { margin-bottom: 3px; font-family: var(--display); font-size: 20px; font-weig
 .comment-item strong { display: block; margin-bottom: 3px; }
 .comment-form { display: flex; gap: 8px; align-items: center; }
 .comment-form .dialog-primary { flex: 0 0 auto; }
-.profile-dialog { width: min(560px, calc(100% - 28px)); }
-.public-profile-cover { height: 150px; overflow: hidden; border-radius: 8px; background: var(--surface-soft); }
-.public-profile-cover[hidden] { display: none; }
-.public-profile-cover img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.public-profile-page { display: grid; gap: 0; overflow: hidden; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); box-shadow: var(--shadow); }
+.public-profile-page[hidden] { display: none; }
+.profile-page-back { justify-self: start; margin: 0 0 12px; }
+.profile-page-cover { height: 260px; overflow: hidden; background: var(--surface-soft); }
+.profile-page-cover[hidden] { display: none; }
+.profile-page-cover img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.profile-page-content { display: grid; gap: 14px; padding: 22px; }
 .public-profile-header { display: flex; align-items: center; gap: 13px; padding: 5px 0; }
-.public-profile-frame { width: 64px; height: 64px; }
+.public-profile-frame { width: 82px; height: 82px; }
 .public-profile-header h2 { margin: 0 0 4px; }
 .profile-handle { margin: 0; color: var(--muted); font-size: 12px; }
 .public-profile-bio { margin: 0; color: var(--muted); font-size: 12px; line-height: 1.5; white-space: pre-wrap; }
 .public-profile-bio:empty { display: none; }
 .profile-follow { justify-self: start; }
+.profile-page-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 9px; }
 .profile-posts-heading { margin: 5px 0 0; font-family: var(--display); font-size: 13px; }
 .profile-posts { display: grid; max-height: 380px; gap: 9px; overflow-y: auto; }
+.public-profile-page .profile-posts { max-height: none; overflow: visible; }
 .profile-posts-empty { margin: 0; padding: 16px; border-radius: 6px; background: var(--surface-soft); color: var(--muted); font-size: 11px; }
 .profile-post-card { padding: 10px; border: 1px solid var(--line); border-radius: 7px; background: var(--surface); }
 .profile-post-card p { margin: 0; font-size: 11px; line-height: 1.5; white-space: pre-wrap; overflow-wrap: anywhere; }
@@ -475,6 +481,8 @@ body.compact .post-copy { margin: 8px 0; }
 	.account-settings { grid-template-columns: 1fr; }
 	.profile-customization { grid-template-columns: 1fr; }
 	.profile-cover-editor { grid-template-columns: 1fr; align-items: start; }
+	.profile-page-cover { height: 180px; }
+	.profile-page-content { padding: 15px; }
 	.account-settings h2, .account-settings p, .account-settings .dialog-primary { grid-column: 1; grid-row: auto; }
 	.composer-footer { margin-left: 46px; gap: 6px; }
 	.composer-tools { gap: 8px; font-size: 8px; }
