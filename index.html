@@ -20,10 +20,10 @@
 			<nav class="global-nav" aria-label="Quick navigation">
 				<button class="icon-button active" type="button" data-view="home" aria-label="Home">⌂</button>
 				<button class="icon-button" type="button" data-view="townsquare" aria-label="Townsquare">♧</button>
-				<button class="icon-button" type="button" data-view="explore" aria-label="Watch">▷</button>
-				<button class="icon-button" type="button" data-view="saved" aria-label="Marketplace">▤</button>
+				<button class="icon-button" type="button" data-view="explore" aria-label="Explore">⌕</button>
+				<button class="icon-button" type="button" data-coming-soon aria-label="Marketplace">▤</button>
 			</nav>
-			<button class="header-account" type="button"><img class="avatar" src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&q=80" alt=""><span>Victor Quinteros</span><span class="chevron" aria-hidden="true">⌄</span></button>
+			<button class="header-account" id="account-button" type="button"><img class="avatar" src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&q=80" alt=""><span id="account-label">Sign in</span><span class="chevron" aria-hidden="true">⌄</span></button>
 		</div>
 	</header>
 	<!-- 03. Main application layout -->
@@ -32,8 +32,8 @@
 			<nav class="nav-list">
 				<button class="nav-button active" type="button" data-view="home"><span class="nav-icon" aria-hidden="true">⌂</span><span>Home</span></button>
 				<button class="nav-button" type="button" data-view="explore"><span class="nav-icon" aria-hidden="true">⌕</span><span>Explore</span></button>
-				<button class="nav-button" type="button" data-coming-soon><span class="nav-icon" aria-hidden="true">♧</span><span>Friends</span></button>
-				<button class="nav-button" type="button" data-coming-soon><span class="nav-icon" aria-hidden="true">♧</span><span>Groups</span></button>
+				<button class="nav-button" type="button" data-scroll-to="contacts-panel"><span class="nav-icon" aria-hidden="true">♧</span><span>Friends</span></button>
+				<button class="nav-button" type="button" data-scroll-to="groups-panel"><span class="nav-icon" aria-hidden="true">♧</span><span>Groups</span></button>
 				<button class="nav-button" type="button" data-coming-soon><span class="nav-icon" aria-hidden="true">▤</span><span>Marketplace</span></button>
 				<button class="nav-button" type="button" data-coming-soon><span class="nav-icon" aria-hidden="true">▷</span><span>Watch</span></button>
 				<button class="nav-button" type="button" data-view="townsquare"><span class="nav-icon" aria-hidden="true">⌖</span><span>Townsquare</span></button>
@@ -69,7 +69,7 @@
 
 			<div class="account">
 				<img class="avatar" src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&q=80" alt="">
-				<div><span class="account-name">Alex Morgan</span><span class="account-handle">@alexm</span></div>
+				<div><span class="account-name" id="sidebar-account-name">Alex Morgan</span><span class="account-handle" id="sidebar-account-handle">@alexm</span></div>
 			</div>
 		</aside>
 
@@ -81,17 +81,21 @@
 			</div>
 
 			<form class="composer" id="post-form">
-				<div class="composer-main"><img class="avatar" src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&q=80" alt=""><textarea id="post-text" maxlength="500" placeholder="What's on your mind, Alex?" aria-label="Write a post" required></textarea></div>
-				<div class="composer-footer"><div class="composer-tools"><button class="composer-tool" type="button" aria-label="Add a photo">▧ &nbsp;Photo</button><button class="composer-tool" type="button" aria-label="Add a feeling">☺ &nbsp;Feeling</button></div><button class="post-button" type="submit">Share post</button></div>
+				<div class="composer-main"><img class="avatar" id="composer-avatar" src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&q=80" alt=""><textarea id="post-text" maxlength="500" placeholder="What's on your mind, Alex?" aria-label="Write a post"></textarea></div>
+				<div class="photo-preview" id="photo-preview" hidden><img id="photo-preview-image" alt="Selected post attachment"><button class="remove-photo" type="button" data-remove-photo aria-label="Remove photo">×</button></div>
+				<div class="feeling-menu" id="feeling-menu" hidden><span>Add a feeling:</span><button type="button" data-feeling="😊 Feeling happy">😊</button><button type="button" data-feeling="🎉 Celebrating">🎉</button><button type="button" data-feeling="🌱 Feeling inspired">🌱</button><button type="button" data-feeling="☕ Taking it slow">☕</button></div>
+				<input id="photo-input" type="file" accept="image/*" hidden>
+				<input id="story-input" type="file" accept="image/*" hidden>
+				<div class="composer-footer"><div class="composer-tools"><button class="composer-tool" type="button" data-attach-photo aria-label="Add a photo">▧ &nbsp;Photo</button><button class="composer-tool" type="button" data-open-feelings aria-expanded="false">☺ &nbsp;Feeling</button></div><button class="post-button" type="submit">Share post</button></div>
 			</form>
 
 			<div class="stories" aria-label="Stories">
-				<button class="story add" type="button" data-focus-composer><span class="story-ring" aria-hidden="true">＋</span><span>Create story</span></button>
-				<button class="story" type="button"><span class="story-ring"><img src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=100&q=80" alt=""></span><span>Maya Lopez</span></button>
-				<button class="story" type="button"><span class="story-ring"><img src="https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=100&q=80" alt=""></span><span>Daniel Ruiz</span></button>
-				<button class="story" type="button"><span class="story-ring"><img src="https://images.unsplash.com/photo-1531123897727-8f129e1688ce?auto=format&fit=crop&w=100&q=80" alt=""></span><span>Sofia Martinez</span></button>
-				<button class="story" type="button"><span class="story-ring"><img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&q=80&sat=-80" alt=""></span><span>Carlos Vega</span></button>
-				<button class="story" type="button"><span class="story-ring"><img src="https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=100&q=80" alt=""></span><span>Travel Life</span></button>
+				<button class="story add" type="button" data-create-story><span class="story-ring" aria-hidden="true">＋</span><span>Create story</span></button>
+				<button class="story" type="button" data-story><span class="story-ring"><img src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=100&q=80" alt=""></span><span>Maya Lopez</span></button>
+				<button class="story" type="button" data-story><span class="story-ring"><img src="https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=100&q=80" alt=""></span><span>Daniel Ruiz</span></button>
+				<button class="story" type="button" data-story><span class="story-ring"><img src="https://images.unsplash.com/photo-1531123897727-8f129e1688ce?auto=format&fit=crop&w=100&q=80" alt=""></span><span>Sofia Martinez</span></button>
+				<button class="story" type="button" data-story><span class="story-ring"><img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&q=80&sat=-80" alt=""></span><span>Carlos Vega</span></button>
+				<button class="story" type="button" data-story><span class="story-ring"><img src="https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=100&q=80" alt=""></span><span>Travel Life</span></button>
 			</div>
 			<section class="town-square-intro" id="town-square-intro" hidden>
 				<div><p class="town-square-label">YOUR NEIGHBORHOOD, IN THE KNOW</p><p class="town-square-copy">Local conversations, useful finds, and small things happening nearby.</p></div>
@@ -109,7 +113,7 @@
 					<header class="post-header">
 						<img class="avatar post-avatar" data-field="avatar" alt="">
 						<div class="post-identity"><div class="name-line"><span class="post-name" data-field="author"></span><span class="post-handle" data-field="handle"></span><span class="post-time" data-field="time"></span></div></div>
-						<button class="post-menu" type="button" aria-label="More post options">···</button>
+						<button class="post-menu" type="button" data-action="menu" aria-label="More post options">···</button>
 					</header>
 					<div class="local-meta" data-field="local-meta"><span>⌖ Townsquare</span> · <span data-field="local-type"></span></div>
 					<p class="post-copy" data-field="text"></p>
@@ -127,10 +131,10 @@
 
 		<!-- 05. Community suggestions and contacts -->
 		<aside class="right-rail" aria-label="Community">
-			<section class="rail-panel"><h2 class="panel-title">Suggested for you <button class="text-link" type="button" data-coming-soon>See all</button></h2><div class="suggestion-list">
-				<div class="suggestion"><img src="https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=90&q=75" alt=""><div class="suggestion-copy"><strong>Nature & Adventure</strong><span>Group · 125K members</span></div><button class="join-button" type="button" data-coming-soon>Join</button></div>
-				<div class="suggestion"><img src="https://images.unsplash.com/photo-1511512578047-dfb367046420?auto=format&fit=crop&w=90&q=75" alt=""><div class="suggestion-copy"><strong>Tech & Innovation</strong><span>Group · 98K members</span></div><button class="join-button" type="button" data-coming-soon>Join</button></div>
-				<div class="suggestion"><img src="https://images.unsplash.com/photo-1511512578047-dfb367046420?auto=format&fit=crop&w=90&q=75&sat=-70" alt=""><div class="suggestion-copy"><strong>Gaming Community</strong><span>Group · 210K members</span></div><button class="join-button" type="button" data-coming-soon>Join</button></div>
+			<section class="rail-panel"><h2 class="panel-title">Suggested for you <button class="text-link" type="button" data-scroll-to="groups-panel">See all</button></h2><div class="suggestion-list">
+				<div class="suggestion"><img src="https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=90&q=75" alt=""><div class="suggestion-copy"><strong>Nature & Adventure</strong><span>Group · 125K members</span></div><button class="join-button" type="button" data-group-id="nature-adventure" aria-pressed="false">Join</button></div>
+				<div class="suggestion"><img src="https://images.unsplash.com/photo-1511512578047-dfb367046420?auto=format&fit=crop&w=90&q=75" alt=""><div class="suggestion-copy"><strong>Tech & Innovation</strong><span>Group · 98K members</span></div><button class="join-button" type="button" data-group-id="tech-innovation" aria-pressed="false">Join</button></div>
+				<div class="suggestion"><img src="https://images.unsplash.com/photo-1511512578047-dfb367046420?auto=format&fit=crop&w=90&q=75&sat=-70" alt=""><div class="suggestion-copy"><strong>Gaming Community</strong><span>Group · 210K members</span></div><button class="join-button" type="button" data-group-id="gaming-community" aria-pressed="false">Join</button></div>
 			</div></section>
 			<section class="rail-panel"><h2 class="panel-title">Trending</h2><div class="trend-list">
 				<button class="trend" type="button" data-topic="Panama City"><span class="trend-type">1 · CITY</span><span class="trend-name">#PanamaCity</span><span class="trend-count">12.4K posts</span></button>
@@ -138,15 +142,19 @@
 				<button class="trend" type="button" data-topic="weekendcooking"><span class="trend-type">3 · FOOD</span><span class="trend-name">#WeekendCooking</span><span class="trend-count">3.1K posts</span></button>
 				<button class="trend" type="button" data-topic="Travel"><span class="trend-type">4 · TRAVEL</span><span class="trend-name">#Travel</span><span class="trend-count">15.6K posts</span></button>
 			</div></section>
-			<section class="rail-panel"><h2 class="panel-title">Groups</h2><div class="suggestion-list">
-				<div class="suggestion"><img src="https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=90&q=75" alt=""><div class="suggestion-copy"><strong>Panama Travel & Life</strong><span>8.2K members</span></div><button class="join-button" type="button" data-coming-soon>Join</button></div>
-				<div class="suggestion"><img src="https://images.unsplash.com/photo-1503376780353-7e6692767b70?auto=format&fit=crop&w=90&q=75" alt=""><div class="suggestion-copy"><strong>Car Enthusiasts</strong><span>12.6K members</span></div><button class="join-button" type="button" data-coming-soon>Join</button></div>
+			<section class="rail-panel" id="groups-panel"><h2 class="panel-title">Groups</h2><div class="suggestion-list">
+				<div class="suggestion"><img src="https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=90&q=75" alt=""><div class="suggestion-copy"><strong>Panama Travel & Life</strong><span>8.2K members</span></div><button class="join-button" type="button" data-group-id="panama-travel-life" aria-pressed="false">Join</button></div>
+				<div class="suggestion"><img src="https://images.unsplash.com/photo-1503376780353-7e6692767b70?auto=format&fit=crop&w=90&q=75" alt=""><div class="suggestion-copy"><strong>Car Enthusiasts</strong><span>12.6K members</span></div><button class="join-button" type="button" data-group-id="car-enthusiasts" aria-pressed="false">Join</button></div>
+			</div></section>
+			<section class="rail-panel" id="people-panel"><h2 class="panel-title">People to know</h2><div class="people-list" id="people-list">
+				<div class="person" data-demo-person><img class="avatar" src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=70&q=70" alt=""><div class="person-meta"><span class="person-name">Maya Chen</span><span class="person-handle">@mayasees</span></div><button class="follow" type="button" data-follow-handle="@mayasees" aria-pressed="false">Follow</button></div>
+				<div class="person" data-demo-person><img class="avatar" src="https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=70&q=70" alt=""><div class="person-meta"><span class="person-name">Leo Park</span><span class="person-handle">@leocooks</span></div><button class="follow" type="button" data-follow-handle="@leocooks" aria-pressed="false">Follow</button></div>
 			</div></section>
 			<footer class="rail-footer"><a href="#about">About</a><a href="#guidelines">Guidelines</a><a href="#privacy">Privacy</a><span>© 2026 Unison</span></footer>
 		</aside>
 
 		<aside class="contact-rail" aria-label="Contacts and quick links">
-			<section class="contact-panel"><h2 class="contact-heading">Contacts <button type="button" aria-label="Search contacts">⌕</button></h2><div class="contact-list">
+			<section class="contact-panel" id="contacts-panel"><h2 class="contact-heading">Contacts <button id="contact-search-toggle" type="button" aria-label="Search contacts" aria-expanded="false">⌕</button></h2><input id="contact-search" class="contact-search" type="search" placeholder="Find a contact" aria-label="Search contacts" hidden><div class="contact-list">
 				<div class="contact"><img class="avatar" src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=70&q=70" alt=""><span class="contact-name">Maria Lopez</span><span class="online-dot" aria-label="Online"></span></div>
 				<div class="contact"><img class="avatar" src="https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=70&q=70" alt=""><span class="contact-name">Daniel Ruiz</span><span class="online-dot" aria-label="Online"></span></div>
 				<div class="contact"><img class="avatar" src="https://images.unsplash.com/photo-1531123897727-8f129e1688ce?auto=format&fit=crop&w=70&q=70" alt=""><span class="contact-name">Sofia Martinez</span><span class="online-dot" aria-label="Online"></span></div>
@@ -171,8 +179,30 @@
 		<button class="nav-button" type="button" data-view="saved" aria-label="Saved posts"><span class="nav-icon" aria-hidden="true">♡</span><span class="nav-label">Saved</span></button>
 	</nav>
 	<div class="toast" id="toast" role="status" aria-live="polite"></div>
+	<dialog class="app-dialog" id="auth-dialog" aria-labelledby="auth-title">
+		<form id="auth-form" method="dialog" class="dialog-content">
+			<button class="dialog-close" type="button" data-close-dialog aria-label="Close">×</button>
+			<p class="dialog-eyebrow">YOUR UNISON ACCOUNT</p>
+			<h2 id="auth-title">Sign in</h2>
+			<p class="dialog-copy" id="auth-message">Sign in to post, like, save, and join groups.</p>
+			<label class="dialog-field">Email<input id="auth-email" type="email" autocomplete="email" required></label>
+			<label class="dialog-field">Password<input id="auth-password" type="password" autocomplete="current-password" minlength="8" required></label>
+			<label class="dialog-field" id="auth-handle-field" hidden>Handle<input id="auth-handle" type="text" autocomplete="username" maxlength="24"></label>
+			<label class="dialog-field" id="auth-name-field" hidden>Display name<input id="auth-name" type="text" autocomplete="name" maxlength="60"></label>
+			<button class="dialog-primary" type="submit" id="auth-submit">Sign in</button>
+			<button class="dialog-link" type="button" id="auth-mode-toggle">Create an account</button>
+			<button class="dialog-link" type="button" id="auth-signout" hidden>Sign out</button>
+		</form>
+	</dialog>
+	<dialog class="app-dialog" id="story-dialog" aria-labelledby="story-title">
+		<div class="story-viewer"><button class="dialog-close" type="button" data-close-dialog aria-label="Close">×</button><img id="story-image" alt=""><h2 id="story-title"></h2><p>Story preview</p></div>
+	</dialog>
+	<dialog class="app-dialog" id="comments-dialog" aria-labelledby="comments-title">
+		<div class="dialog-content"><button class="dialog-close" type="button" data-close-dialog aria-label="Close">×</button><p class="dialog-eyebrow">CONVERSATION</p><h2 id="comments-title">Replies</h2><div id="comments-list" class="comments-list"></div><form id="comment-form" class="comment-form"><input id="comment-text" type="text" maxlength="1000" placeholder="Write a reply..." aria-label="Write a reply" required><button class="dialog-primary" type="submit">Reply</button></form></div>
+	</dialog>
 
 	<!-- 07. Application scripts -->
+	<script src="supabase-config.js"></script>
 	<script src="posts.js"></script>
 	<script src="api.js"></script>
 	<script src="script.js"></script>
