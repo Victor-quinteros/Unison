@@ -5,6 +5,7 @@ const supabasePublishableKey = String(supabaseConfig.publishableKey || "");
 let supabaseSession = null;
 let refreshRequest = null;
 const sessionStorageKey = "unison.auth.session";
+const privateMediaCache = new Map();
 
 function isSupabaseConfigured() {
 	return Boolean(supabaseUrl && supabasePublishableKey);
@@ -106,22 +107,55 @@ async function supabaseRequest(path, options = {}) {
 	return readResponse(response);
 }
 
-function mapPost(row) {
+function storageObjectPath(bucket, value) {
+	const source = String(value || "");
+	const marker = `/object/public/${bucket}/`;
+	const markerIndex = source.indexOf(marker);
+	if (markerIndex >= 0) return decodeURIComponent(source.slice(markerIndex + marker.length).split("?")[0]);
+	return source.startsWith("http") ? "" : source;
+}
+
+async function privateMediaUrl(path) {
+	if (!path) return "";
+	if (privateMediaCache.has(path)) return privateMediaCache.get(path);
+	const mediaRequest = (async () => {
+		const session = await requireSession();
+		const headers = new Headers({ apikey: supabasePublishableKey, Authorization: `Bearer ${session.access_token}` });
+		const response = await fetch(configuredUrl(`storage/v1/object/authenticated/post-media/${path}`), { headers });
+		if (!response.ok) await readResponse(response);
+		return URL.createObjectURL(await response.blob());
+	})();
+	privateMediaCache.set(path, mediaRequest);
+	try {
+		return await mediaRequest;
+	} catch (error) {
+		privateMediaCache.delete(path);
+		throw error;
+	}
+}
+
+async function profileAvatarUrl(value) {
+	const oldPostMediaPath = storageObjectPath("post-media", value);
+	return oldPostMediaPath ? privateMediaUrl(oldPostMediaPath) : String(value || "");
+}
+
+async function mapPost(row) {
 	const profile = row.profiles || {};
 	const likes = row.post_likes || [];
 	const comments = row.post_comments || [];
 	const savedPosts = row.saved_posts || [];
-	const imagePath = row.image_path || "";
-	const image = imagePath.startsWith("http")
-		? imagePath
-		: imagePath ? `${supabaseUrl}/storage/v1/object/public/post-media/${imagePath}` : "";
+	const imagePath = storageObjectPath("post-media", row.image_path);
+	const [image, avatar] = await Promise.all([
+		imagePath ? privateMediaUrl(imagePath) : Promise.resolve(""),
+		profileAvatarUrl(profile.avatar_url)
+	]);
 	return {
 		id: row.id,
 		userId: row.user_id,
 		author: profile.display_name || "Unison member",
 		handle: profile.handle ? `@${profile.handle}` : "@member",
 		time: new Intl.RelativeTimeFormat("en", { numeric: "auto" }).format(-Math.max(1, Math.floor((Date.now() - new Date(row.created_at).getTime()) / 3600000)), "hour"),
-		avatar: profile.avatar_url || "",
+		avatar,
 		text: row.body,
 		search: row.body,
 		image,
@@ -131,7 +165,8 @@ function mapPost(row) {
 		liked: Boolean(supabaseSession && likes.some((like) => like.user_id === supabaseSession.user.id)),
 		saved: Boolean(supabaseSession && savedPosts.some((saved) => saved.user_id === supabaseSession.user.id)),
 		local: row.scope === "townsquare",
-		localType: row.scope === "townsquare" ? "Community post" : ""
+		community: row.scope === "community",
+		localType: row.scope === "townsquare" ? "Neighborhood post" : row.scope === "community" ? "Community post" : ""
 	};
 }
 
@@ -180,16 +215,16 @@ window.UnisonAuth = Object.freeze({
 window.UnisonApi = Object.freeze({
 	isConfigured: isSupabaseConfigured,
 	async listPosts({ scope = "home", search = "", profileUserId = "" } = {}) {
+		const session = await requireSession();
 		const params = new URLSearchParams({ select: postSelect(), order: "created_at.desc" });
 		if (scope === "townsquare") params.set("scope", "eq.townsquare");
-		if (scope === "home") params.set("scope", "in.(home,townsquare)");
+		if (scope === "community") params.set("scope", "eq.community");
+		if (scope === "home") params.set("scope", "in.(home,townsquare,community)");
 		if (profileUserId) params.set("user_id", `eq.${profileUserId}`);
 		if (scope === "mine") {
-			const session = await requireSession();
 			params.set("user_id", `eq.${session.user.id}`);
 		}
 		if (scope === "following" || scope === "saved") {
-			const session = await requireSession();
 			if (scope === "following") {
 				const follows = await supabaseRequest(`follows?select=followed_id&follower_id=eq.${session.user.id}`, { auth: true });
 				if (!follows.length) return [];
@@ -202,8 +237,8 @@ window.UnisonApi = Object.freeze({
 		}
 		const safeSearch = String(search).replace(/[(),%_*]/g, " ").trim();
 		if (safeSearch) params.set("body", `ilike.*${safeSearch}*`);
-		const rows = await supabaseRequest(`posts?${params}`);
-		return rows.map(mapPost);
+		const rows = await supabaseRequest(`posts?${params}`, { auth: true });
+		return Promise.all(rows.map(mapPost));
 	},
 	async createPost({ text, scope = "home", imageFile = null }) {
 		const session = await requireSession();
@@ -252,18 +287,21 @@ window.UnisonApi = Object.freeze({
 			post_id: `eq.${postId}`,
 			order: "created_at.asc"
 		});
-		return supabaseRequest(`post_comments?${params}`);
+		return supabaseRequest(`post_comments?${params}`, { auth: true });
 	},
 	async listPeople() {
+		await requireSession();
 		const params = new URLSearchParams({
 			select: "id,handle,display_name,avatar_url,bio",
 			order: "created_at.desc",
 			limit: "8"
 		});
 		if (supabaseSession?.user?.id) params.set("id", `neq.${supabaseSession.user.id}`);
-		return supabaseRequest(`profiles?${params}`);
+		const rows = await supabaseRequest(`profiles?${params}`, { auth: true });
+		return Promise.all(rows.map(async (profile) => ({ ...profile, avatar_url: await profileAvatarUrl(profile.avatar_url) })));
 	},
 	async searchPeople(query) {
+		await requireSession();
 		const safeQuery = String(query || "").replace(/[(),%_*]/g, " ").trim();
 		if (!safeQuery) return [];
 		const params = new URLSearchParams({
@@ -273,7 +311,8 @@ window.UnisonApi = Object.freeze({
 			or: `(display_name.ilike.*${safeQuery}*,handle.ilike.*${safeQuery}*,bio.ilike.*${safeQuery}*)`
 		});
 		if (supabaseSession?.user?.id) params.set("id", `neq.${supabaseSession.user.id}`);
-		return supabaseRequest(`profiles?${params}`);
+		const rows = await supabaseRequest(`profiles?${params}`, { auth: true });
+		return Promise.all(rows.map(async (profile) => ({ ...profile, avatar_url: await profileAvatarUrl(profile.avatar_url) })));
 	},
 	async searchGroups(query) {
 		const safeQuery = String(query || "").replace(/[(),%_*]/g, " ").trim();
@@ -290,12 +329,15 @@ window.UnisonApi = Object.freeze({
 		const session = await requireSession();
 		const params = new URLSearchParams({ select: "id,handle,display_name,avatar_url,bio", id: `eq.${session.user.id}`, limit: "1" });
 		const rows = await supabaseRequest(`profiles?${params}`, { auth: true });
-		return rows[0] || null;
+		if (!rows[0]) return null;
+		return { ...rows[0], avatar_url: await profileAvatarUrl(rows[0].avatar_url) };
 	},
 	async getPublicProfile(userId) {
+		await requireSession();
 		const params = new URLSearchParams({ select: "id,handle,display_name,avatar_url,bio", id: `eq.${userId}`, limit: "1" });
-		const rows = await supabaseRequest(`profiles?${params}`);
-		return rows[0] || null;
+		const rows = await supabaseRequest(`profiles?${params}`, { auth: true });
+		if (!rows[0]) return null;
+		return { ...rows[0], avatar_url: await profileAvatarUrl(rows[0].avatar_url) };
 	},
 	async updateMyProfile({ handle, displayName, bio, avatarUrl }) {
 		const session = await requireSession();
@@ -355,17 +397,19 @@ window.UnisonApi = Object.freeze({
 		return supabaseRequest(`groups_memberships?select=group_id&user_id=eq.${session.user.id}`, { auth: true });
 	},
 	async listStories() {
+		await requireSession();
 		const params = new URLSearchParams({
 			select: "id,user_id,image_path,caption,expires_at,created_at,profiles!stories_user_id_fkey(display_name,handle,avatar_url)",
 			expires_at: `gt.${new Date().toISOString()}`,
 			order: "created_at.desc"
 		});
-		const rows = await supabaseRequest(`stories?${params}`);
-		return rows.map((row) => ({
+		const rows = await supabaseRequest(`stories?${params}`, { auth: true });
+		return Promise.all(rows.map(async (row) => ({
 			...row,
-			image: `${supabaseUrl}/storage/v1/object/public/post-media/${row.image_path}`,
+			image: await privateMediaUrl(row.image_path),
+			avatar: await profileAvatarUrl(row.profiles?.avatar_url),
 			name: row.profiles?.display_name || "Unison member"
-		}));
+		})));
 	},
 	async createStory({ imageFile, caption = "" }) {
 		const session = await requireSession();
@@ -377,7 +421,12 @@ window.UnisonApi = Object.freeze({
 			body: { user_id: session.user.id, image_path: imagePath, caption }
 		});
 		const row = rows[0];
-		return { ...row, image: `${supabaseUrl}/storage/v1/object/public/post-media/${row.image_path}`, name: row.profiles?.display_name || "Unison member" };
+		return {
+			...row,
+			image: await privateMediaUrl(row.image_path),
+			avatar: await profileAvatarUrl(row.profiles?.avatar_url),
+			name: row.profiles?.display_name || "Unison member"
+		};
 	},
 	async uploadPostImage(file) {
 		const session = await requireSession();
@@ -400,7 +449,7 @@ window.UnisonApi = Object.freeze({
 		const session = await requireSession();
 		const extension = (file.name.split(".").pop() || "jpg").replace(/[^a-zA-Z0-9]/g, "") || "jpg";
 		const path = `${session.user.id}/profile-${crypto.randomUUID()}.${extension}`;
-		const response = await fetch(configuredUrl(`storage/v1/object/post-media/${path}`), {
+		const response = await fetch(configuredUrl(`storage/v1/object/profile-media/${path}`), {
 			method: "POST",
 			headers: {
 				apikey: supabasePublishableKey,
@@ -411,6 +460,6 @@ window.UnisonApi = Object.freeze({
 			body: file
 		});
 		await readResponse(response);
-		return `${supabaseUrl}/storage/v1/object/public/post-media/${path}`;
+		return `${supabaseUrl}/storage/v1/object/public/profile-media/${path}`;
 	}
 });

@@ -78,10 +78,12 @@ create table if not exists public.posts (
 	id uuid primary key default gen_random_uuid(),
 	user_id uuid not null references public.profiles (id) on delete cascade,
 	body text not null check (char_length(body) between 1 and 500),
-	scope text not null default 'home' check (scope in ('home', 'townsquare')),
+	scope text not null default 'home' check (scope in ('home', 'townsquare', 'community')),
 	image_path text,
 	created_at timestamptz not null default now()
 );
+alter table public.posts drop constraint if exists posts_scope_check;
+alter table public.posts add constraint posts_scope_check check (scope in ('home', 'townsquare', 'community'));
 
 create table if not exists public.post_likes (
 	post_id uuid not null references public.posts (id) on delete cascade,
@@ -180,7 +182,9 @@ alter table public.groups_memberships enable row level security;
 alter table public.stories enable row level security;
 
 grant usage on schema public to anon, authenticated;
-grant select on public.profiles, public.posts, public.post_likes, public.post_comments, public.groups, public.groups_memberships, public.follows, public.stories to anon, authenticated;
+grant select on public.profiles, public.groups, public.groups_memberships, public.follows to anon, authenticated;
+grant select on public.posts, public.post_likes, public.post_comments, public.stories to authenticated;
+revoke select on public.posts, public.post_likes, public.post_comments, public.stories from anon, public;
 grant select, insert, update, delete on public.profiles, public.posts, public.post_likes, public.post_comments, public.saved_posts, public.follows, public.groups_memberships, public.stories to authenticated;
 drop policy if exists "Profiles are readable by everyone" on public.profiles;
 create policy "Profiles are readable by everyone"
@@ -197,9 +201,10 @@ create policy "Users update their own profile"
 	with check (id = (select auth.uid()));
 
 drop policy if exists "Posts are readable by everyone" on public.posts;
-create policy "Posts are readable by everyone"
-	on public.posts for select
-	using (true);
+drop policy if exists "Posts are readable by signed-in members" on public.posts;
+create policy "Posts are readable by signed-in members"
+	on public.posts for select to authenticated
+	using ((select auth.uid()) is not null);
 drop policy if exists "Users create their own posts" on public.posts;
 create policy "Users create their own posts"
 	on public.posts for insert to authenticated
@@ -215,9 +220,10 @@ create policy "Users delete their own posts"
 	using (user_id = (select auth.uid()));
 
 drop policy if exists "Likes are readable by everyone" on public.post_likes;
-create policy "Likes are readable by everyone"
-	on public.post_likes for select
-	using (true);
+drop policy if exists "Likes are readable by signed-in members" on public.post_likes;
+create policy "Likes are readable by signed-in members"
+	on public.post_likes for select to authenticated
+	using ((select auth.uid()) is not null);
 drop policy if exists "Users like posts as themselves" on public.post_likes;
 create policy "Users like posts as themselves"
 	on public.post_likes for insert to authenticated
@@ -228,9 +234,10 @@ create policy "Users remove their own likes"
 	using (user_id = (select auth.uid()));
 
 drop policy if exists "Comments are readable by everyone" on public.post_comments;
-create policy "Comments are readable by everyone"
-	on public.post_comments for select
-	using (true);
+drop policy if exists "Comments are readable by signed-in members" on public.post_comments;
+create policy "Comments are readable by signed-in members"
+	on public.post_comments for select to authenticated
+	using ((select auth.uid()) is not null);
 drop policy if exists "Users create comments as themselves" on public.post_comments;
 create policy "Users create comments as themselves"
 	on public.post_comments for insert to authenticated
@@ -282,8 +289,9 @@ create policy "Users leave groups as themselves"
 	using (user_id = (select auth.uid()));
 
 drop policy if exists "Unexpired stories are publicly readable" on public.stories;
-create policy "Unexpired stories are publicly readable"
-	on public.stories for select using (expires_at > now());
+drop policy if exists "Unexpired stories are readable by members" on public.stories;
+create policy "Unexpired stories are readable by members"
+	on public.stories for select to authenticated using (expires_at > now());
 drop policy if exists "Users create their own stories" on public.stories;
 create policy "Users create their own stories"
 	on public.stories for insert to authenticated
@@ -295,12 +303,17 @@ create policy "Users delete their own stories"
 
 -- 03. Post image storage
 insert into storage.buckets (id, name, public)
-values ('post-media', 'post-media', true)
-on conflict (id) do nothing;
+values ('post-media', 'post-media', false)
+on conflict (id) do update set public = false;
+
+insert into storage.buckets (id, name, public)
+values ('profile-media', 'profile-media', true)
+on conflict (id) do update set public = true;
 
 drop policy if exists "Post images are publicly readable" on storage.objects;
-create policy "Post images are publicly readable"
-	on storage.objects for select
+drop policy if exists "Signed-in members can read post images" on storage.objects;
+create policy "Signed-in members can read post images"
+	on storage.objects for select to authenticated
 	using (bucket_id = 'post-media');
 drop policy if exists "Signed-in users upload their own post images" on storage.objects;
 create policy "Signed-in users upload their own post images"
@@ -315,3 +328,12 @@ drop policy if exists "Users delete their own post images" on storage.objects;
 create policy "Users delete their own post images"
 	on storage.objects for delete to authenticated
 	using (bucket_id = 'post-media' and owner_id = (select auth.uid())::text);
+
+drop policy if exists "Profile pictures are publicly readable" on storage.objects;
+create policy "Profile pictures are publicly readable"
+	on storage.objects for select
+	using (bucket_id = 'profile-media');
+drop policy if exists "Users upload their own profile pictures" on storage.objects;
+create policy "Users upload their own profile pictures"
+	on storage.objects for insert to authenticated
+	with check (bucket_id = 'profile-media' and owner_id = (select auth.uid())::text);

@@ -124,6 +124,16 @@ body[data-theme="dim"][data-accent="coral"] { --accent: #ff927e; --accent-soft: 
 
 /* 05. Feed, stories, and post cards */
 main { min-width: 0; padding: 9px 0 60px; }
+main.signed-out > :not(.page-heading):not(#auth-gate) { display: none; }
+.auth-gate { display: grid; gap: 10px; padding: clamp(20px, 5vw, 42px); border: 1px solid var(--line); border-radius: 9px; background: var(--surface); box-shadow: var(--shadow); }
+.auth-gate[hidden] { display: none; }
+.auth-gate .eyebrow, .auth-gate h2, .auth-gate p { margin: 0; }
+.auth-gate h2 { font-family: var(--display); font-size: 21px; }
+.auth-gate > p:not(.eyebrow) { max-width: 480px; color: var(--muted); line-height: 1.55; }
+.auth-gate > div { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 4px; }
+.post-destination { display: inline-flex; align-items: center; gap: 5px; color: var(--muted); font-size: 9px; }
+.post-destination select { max-width: 120px; height: 27px; padding: 0 6px; border: 1px solid var(--line); border-radius: 5px; background: var(--surface); color: var(--ink); font: inherit; }
+.post-destination[hidden] { display: none; }
 main.search-mode .composer, main.search-mode .stories, main.search-mode .feed-controls { display: none; }
 main.profile-mode > :not(.page-heading):not(#my-profile-page) { display: none; }
 .my-profile-page { gap: 14px; padding: 18px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); box-shadow: var(--shadow); }

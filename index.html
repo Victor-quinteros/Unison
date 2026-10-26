@@ -9,7 +9,7 @@
 	<link rel="preconnect" href="https://fonts.googleapis.com">
 	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 	<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
-	<link rel="stylesheet" href="style.css?v=my-profile-9">
+	<link rel="stylesheet" href="style.css?v=private-community-10">
 </head>
 <body>
 	<!-- 02. Global navigation -->
@@ -33,6 +33,7 @@
 				<button class="nav-button active" type="button" data-view="home"><span class="nav-icon" aria-hidden="true">⌂</span><span>Home</span></button>
 				<button class="nav-button" type="button" data-view="my-posts"><span class="nav-icon" aria-hidden="true">▤</span><span>My posts</span></button>
 				<button class="nav-button" type="button" data-view="my-profile"><span class="nav-icon" aria-hidden="true">◉</span><span>My profile</span></button>
+				<button class="nav-button" type="button" data-view="community"><span class="nav-icon" aria-hidden="true">◎</span><span>Community</span></button>
 				<button class="nav-button" type="button" data-view="explore"><span class="nav-icon" aria-hidden="true">⌕</span><span>Explore</span></button>
 				<button class="nav-button" type="button" data-scroll-to="contacts-panel"><span class="nav-icon" aria-hidden="true">♧</span><span>Friends</span></button>
 				<button class="nav-button" type="button" data-scroll-to="groups-panel"><span class="nav-icon" aria-hidden="true">♧</span><span>Groups</span></button>
@@ -81,6 +82,12 @@
 				<div><p class="eyebrow" id="today-label">YOUR PEOPLE, YOUR PACE</p><h1 id="view-title">Home</h1><p class="page-subtitle">Good things happen when we find each other.</p></div>
 				<span class="date-pill" id="date-label"></span>
 			</div>
+			<section class="auth-gate" id="auth-gate" hidden>
+				<p class="eyebrow">YOUR COMMUNITY, TOGETHER</p>
+				<h2>Sign in to see the feed</h2>
+				<p>Posts are available to signed-in members. Create an account or sign in to join the conversation.</p>
+				<div><button class="dialog-primary" id="gate-signin" type="button">Sign in</button><button class="dialog-link" id="gate-signup" type="button">Create an account</button></div>
+			</section>
 			<section class="search-people-section" id="search-people-section" hidden aria-labelledby="search-people-heading">
 				<h2 class="search-results-heading" id="search-people-heading">People</h2>
 				<div class="search-people-list" id="search-people-list"></div>
@@ -104,7 +111,7 @@
 				<div class="feeling-menu" id="feeling-menu" hidden><span>Add a feeling:</span><button type="button" data-feeling="😊 Feeling happy">😊</button><button type="button" data-feeling="🎉 Celebrating">🎉</button><button type="button" data-feeling="🌱 Feeling inspired">🌱</button><button type="button" data-feeling="☕ Taking it slow">☕</button></div>
 				<input id="photo-input" type="file" accept="image/*" hidden>
 				<input id="story-input" type="file" accept="image/*" hidden>
-				<div class="composer-footer"><div class="composer-tools"><button class="composer-tool" type="button" data-attach-photo aria-label="Add a photo">▧ &nbsp;Photo</button><button class="composer-tool" type="button" data-open-feelings aria-expanded="false">☺ &nbsp;Feeling</button></div><button class="post-button" type="submit">Share post</button></div>
+				<div class="composer-footer"><div class="composer-tools"><button class="composer-tool" type="button" data-attach-photo aria-label="Add a photo">▧ &nbsp;Photo</button><button class="composer-tool" type="button" data-open-feelings aria-expanded="false">☺ &nbsp;Feeling</button><label class="post-destination" id="post-destination">Post to<select id="post-scope" aria-label="Post destination"><option value="home">My circle</option><option value="community">Community feed</option></select></label></div><button class="post-button" type="submit">Share post</button></div>
 				<p class="post-status" id="post-status" role="status" aria-live="polite" hidden></p>
 			</form>
 
@@ -194,6 +201,7 @@
 		<button class="nav-button active" type="button" data-view="home" aria-label="Home"><span class="nav-icon" aria-hidden="true">⌂</span><span class="nav-label">Home</span></button>
 		<button class="nav-button" type="button" data-view="my-posts" aria-label="My posts"><span class="nav-icon" aria-hidden="true">▤</span><span class="nav-label">My posts</span></button>
 		<button class="nav-button" type="button" data-view="my-profile" aria-label="My profile"><span class="nav-icon" aria-hidden="true">◉</span><span class="nav-label">Profile</span></button>
+		<button class="nav-button" type="button" data-view="community" aria-label="Community feed"><span class="nav-icon" aria-hidden="true">◎</span><span class="nav-label">Community</span></button>
 		<button class="nav-button" type="button" data-view="townsquare" aria-label="Townsquare"><span class="nav-icon" aria-hidden="true">⌖</span><span class="nav-label">Town</span></button>
 		<button class="nav-button" type="button" data-view="explore" aria-label="Explore"><span class="nav-icon" aria-hidden="true">⌕</span><span class="nav-label">Explore</span></button>
 		<button class="nav-button" type="button" data-focus-composer aria-label="Write a post"><span class="nav-icon" aria-hidden="true">＋</span><span class="nav-label">Post</span></button>
@@ -237,7 +245,7 @@
 	<!-- 07. Application scripts -->
 	<script src="supabase-config.js"></script>
 	<script src="posts.js"></script>
-	<script src="api.js?v=my-profile-9"></script>
-	<script src="script.js?v=my-profile-9"></script>
+	<script src="api.js?v=private-community-10"></script>
+	<script src="script.js?v=private-community-10"></script>
 </body>
 </html>
