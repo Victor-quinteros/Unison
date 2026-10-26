@@ -175,6 +175,20 @@
 	}
 
 	// 02. Feed rendering and filtering
+	function renderPostText(element, value) {
+		element.replaceChildren();
+		String(value || "").split(/(#[A-Za-z0-9_]+)/g).forEach((part) => {
+			if (part.startsWith("#")) {
+				const tag = document.createElement("span");
+				tag.className = "tag";
+				tag.textContent = part;
+				element.append(tag);
+			} else {
+				element.append(document.createTextNode(part));
+			}
+		});
+	}
+
 	function renderPost(postData) {
 		const template = document.querySelector("#post-template");
 		const post = template.content.firstElementChild.cloneNode(true);
@@ -183,6 +197,8 @@
 		if (postData.saved) post.classList.add("saved");
 		post.dataset.author = postData.handle;
 		post.dataset.search = `${postData.author} ${postData.handle} ${postData.search || ""} ${postData.text}`.toLowerCase();
+		const currentUser = window.UnisonAuth.getUser();
+		post.querySelector("[data-owner-menu-wrap]").hidden = !currentUser || postData.userId !== currentUser.id;
 
 		if (postData.local || postData.community || postData.visibility === "private") {
 			post.classList.add("town-square-post");
@@ -207,17 +223,7 @@
 		post.querySelector('[data-field="author"]').textContent = postData.author;
 		post.querySelector('[data-field="handle"]').textContent = postData.handle;
 		post.querySelector('[data-field="time"]').textContent = `· ${postData.time}`;
-		const textElement = post.querySelector('[data-field="text"]');
-		postData.text.split(/(#[A-Za-z0-9_]+)/g).forEach((part) => {
-			if (part.startsWith("#")) {
-				const tag = document.createElement("span");
-				tag.className = "tag";
-				tag.textContent = part;
-				textElement.append(tag);
-			} else {
-				textElement.append(document.createTextNode(part));
-			}
-		});
+		renderPostText(post.querySelector('[data-field="text"]'), postData.text);
 
 		if (postData.image) {
 			const image = post.querySelector('[data-field="image"]');
@@ -967,8 +973,32 @@
 			document.querySelector("#profile-avatar-file").value = "";
 			document.querySelector("#profile-background-file").value = "";
 			setProfileCoverPreview(currentProfile.profile_background_url || "");
-			status.textContent = "Your profile and uploaded photos are saved.";
-			showToast("Profile saved.");
+			const profileUploads = [
+				{ file: photo, label: "profile picture" },
+				{ file: backgroundPhoto, label: "profile background" }
+			].filter((upload) => upload.file);
+			const shareResults = await Promise.allSettled(profileUploads.map(({ file, label }) => window.UnisonApi.createPost({
+				text: `Updated their ${label}.`,
+				scope: "home",
+				visibility: "public",
+				imageFile: file
+			})));
+			let sharedCount = 0;
+			let shareError = null;
+			shareResults.forEach((result) => {
+				if (result.status === "fulfilled") {
+					feedPosts.unshift(result.value);
+					sharedCount += 1;
+				} else shareError ||= result.reason;
+			});
+			if (sharedCount) renderFeed();
+			status.classList.toggle("error", Boolean(shareError));
+			status.textContent = shareError
+				? `Profile saved, but ${sharedCount ? "some" : "the"} photo feed post${sharedCount === 1 ? "" : "s"} could not be created: ${shareError.message}`
+				: sharedCount
+					? `Profile saved. ${sharedCount} uploaded photo${sharedCount === 1 ? " was" : "s were"} shared to Home.`
+					: "Your profile is saved.";
+			showToast(shareError ? "Profile saved, but a photo could not be shared to Home." : sharedCount ? "Profile saved and shared to Home." : "Profile saved.");
 			Promise.allSettled([refreshSupabaseFeed(), refreshPeople(), refreshStories()]).then((refreshResults) => {
 				if (refreshResults.some((result) => result.status === "rejected")) showToast("Profile saved. Some profile pictures or posts may take a moment to refresh.");
 			});
@@ -1139,6 +1169,15 @@
 	document.querySelectorAll("[data-scroll-to]").forEach((button) => button.addEventListener("click", () => {
 		document.querySelector(`#${button.dataset.scrollTo}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
 	}));
+	document.querySelector("#brand-home").addEventListener("click", (event) => {
+		event.preventDefault();
+		setView("home");
+		if (location.hash !== "#home") {
+			history.pushState({ view: "home" }, "", "#home");
+			lastRouteHash = location.hash;
+		}
+		window.scrollTo({ top: 0, behavior: "smooth" });
+	});
 	document.querySelectorAll("[data-view]").forEach((button) => button.addEventListener("click", () => setView(button.dataset.view)));
 	document.querySelectorAll("[data-filter]").forEach((button) => button.addEventListener("click", () => {
 		currentView = "home";
@@ -1340,6 +1379,29 @@
 			await openPublicProfile(profileLink.dataset.profileId, profileLink.dataset.profileHandle);
 			return;
 		}
+		const ownerAction = event.target.closest("[data-owner-action]");
+		if (ownerAction) {
+			const post = ownerAction.closest(".post");
+			const menu = ownerAction.closest("[data-owner-menu]");
+			if (menu) menu.hidden = true;
+			if (!post || post.dataset.userId !== window.UnisonAuth.getUser()?.id) return showToast("You can only manage your own posts.");
+			if (ownerAction.dataset.ownerAction !== "delete") return;
+			if (!post.dataset.postId || !window.UnisonApi.isConfigured()) return showToast("Only your saved posts can be deleted.");
+			if (!window.confirm("Delete this post? This cannot be undone.")) return;
+			ownerAction.disabled = true;
+			try {
+				await window.UnisonApi.deletePost(post.dataset.postId);
+				feedPosts = feedPosts.filter((item) => item.id !== post.dataset.postId);
+				post.remove();
+				applyFilters();
+				showToast("Post deleted.");
+			} catch (error) {
+				showToast(error.message);
+			} finally {
+				ownerAction.disabled = false;
+			}
+			return;
+		}
 		const button = event.target.closest("button[data-action]");
 		if (!button) return;
 		const post = button.closest(".post");
@@ -1391,9 +1453,20 @@
 			} catch {
 				showToast("Copy the page address to share this post.");
 			}
-		} else if (button.classList.contains("post-menu")) {
-			showToast("Post options are not available yet.");
+		} else if (button.dataset.action === "menu") {
+			const menu = post.querySelector("[data-owner-menu]");
+			const expanded = button.getAttribute("aria-expanded") === "true";
+			feed.querySelectorAll("[data-owner-menu]").forEach((item) => { item.hidden = true; });
+			feed.querySelectorAll('.post-menu[data-action="menu"]').forEach((item) => item.setAttribute("aria-expanded", "false"));
+			menu.hidden = expanded;
+			button.setAttribute("aria-expanded", String(!expanded));
 		}
+	});
+
+	document.addEventListener("click", (event) => {
+		if (event.target.closest("[data-owner-menu-wrap]")) return;
+		feed.querySelectorAll("[data-owner-menu]").forEach((menu) => { menu.hidden = true; });
+		feed.querySelectorAll('.post-menu[data-action="menu"]').forEach((button) => button.setAttribute("aria-expanded", "false"));
 	});
 
 	document.querySelector("#comment-form").addEventListener("submit", async (event) => {

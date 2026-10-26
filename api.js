@@ -280,6 +280,27 @@ window.UnisonApi = Object.freeze({
 		});
 		return mapPost(rows[0]);
 	},
+	async deletePost(postId) {
+		const session = await requireSession();
+		const params = new URLSearchParams({ id: `eq.${postId}`, user_id: `eq.${session.user.id}`, select: "id,image_path" });
+		const rows = await supabaseRequest(`posts?${params}`, {
+			method: "DELETE",
+			auth: true,
+			headers: { Prefer: "return=representation" }
+		});
+		if (!rows.length) throw new Error("This post could not be deleted. Refresh the feed and try again.");
+		if (rows[0].image_path) {
+			const path = rows[0].image_path.split("/").map(encodeURIComponent).join("/");
+			try {
+				const response = await fetch(configuredUrl(`storage/v1/object/post-media/${path}`), {
+					method: "DELETE",
+					headers: { apikey: supabasePublishableKey, Authorization: `Bearer ${session.access_token}` }
+				});
+				await readResponse(response);
+			} catch { /* The post is already deleted; a storage cleanup failure should not undo that. */ }
+		}
+		return true;
+	},
 	async likePost(postId, shouldLike) {
 		const session = await requireSession();
 		const params = new URLSearchParams({ post_id: `eq.${postId}`, user_id: `eq.${session.user.id}` });

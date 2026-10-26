@@ -307,6 +307,12 @@ h1 { margin-bottom: 3px; font-family: var(--display); font-size: 20px; font-weig
 .post-handle, .post-time { color: var(--muted); font-size: 10px; }
 .post-menu { width: 29px; height: 29px; border: 0; border-radius: 50%; background: transparent; color: var(--muted); font-size: 18px; }
 .post-menu:hover { background: var(--surface-soft); }
+.post-menu-wrap { position: relative; margin-left: auto; }
+.post-menu-wrap[hidden], .post-menu-options[hidden] { display: none; }
+.post-menu-options { position: absolute; top: 34px; right: 0; z-index: 5; display: grid; min-width: 140px; padding: 5px; border: 1px solid var(--line); border-radius: 7px; background: var(--surface); box-shadow: var(--shadow); }
+.post-menu-options button { padding: 8px 9px; border: 0; border-radius: 4px; background: transparent; color: var(--ink); font: inherit; font-size: 10px; text-align: left; cursor: pointer; }
+.post-menu-options button:hover { background: var(--surface-soft); }
+.post-menu-options .post-delete-action { color: #c84d3a; }
 .post-copy { margin: 8px 0; font-size: 10px; line-height: 1.55; white-space: pre-wrap; overflow-wrap: anywhere; }
 .tag { color: var(--accent); font-weight: 700; }
 .post-image { display: block; width: 100%; max-height: 290px; border-radius: 6px; object-fit: cover; background: var(--surface-soft); }

@@ -213,6 +213,7 @@ grant select on public.posts, public.post_likes, public.post_comments, public.st
 revoke select on public.posts, public.post_likes, public.post_comments, public.stories from anon, public;
 grant select on public.posts to anon;
 grant select, insert, update, delete on public.profiles, public.posts, public.post_likes, public.post_comments, public.saved_posts, public.follows, public.groups_memberships, public.stories to authenticated;
+revoke update on public.posts from authenticated;
 revoke all on public.messages from anon, public;
 grant select, insert on public.messages to authenticated;
 drop policy if exists "Profiles are readable by everyone" on public.profiles;
@@ -244,10 +245,6 @@ create policy "Users create their own posts"
 	on public.posts for insert to authenticated
 	with check (user_id = (select auth.uid()));
 drop policy if exists "Users update their own posts" on public.posts;
-create policy "Users update their own posts"
-	on public.posts for update to authenticated
-	using (user_id = (select auth.uid()))
-	with check (user_id = (select auth.uid()));
 drop policy if exists "Users delete their own posts" on public.posts;
 create policy "Users delete their own posts"
 	on public.posts for delete to authenticated

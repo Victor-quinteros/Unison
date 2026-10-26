@@ -9,13 +9,13 @@
 	<link rel="preconnect" href="https://fonts.googleapis.com">
 	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 	<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
-	<link rel="stylesheet" href="style.css?v=profile-post-dividers-22">
+	<link rel="stylesheet" href="style.css?v=post-delete-only-24">
 </head>
 <body>
 	<!-- 02. Global navigation -->
 	<header class="site-header">
 		<div class="header-inner">
-			<a class="brand" href="#home"><span class="brand-mark" aria-hidden="true"></span>unison</a>
+			<a class="brand" id="brand-home" href="#home" aria-label="Unison home"><span class="brand-mark" aria-hidden="true"></span>unison</a>
 			<form class="search-wrap global-search" id="search-form" role="search"><span class="search-icon" aria-hidden="true">⌕</span><input class="search" id="search" type="search" placeholder="Search people, posts, groups, or anything..." aria-label="Search people and posts"><button class="search-submit" type="submit" aria-label="Show search results">Search</button></form>
 			<nav class="global-nav" aria-label="Quick navigation">
 				<button class="icon-button active" type="button" data-view="home" aria-label="Home">⌂</button>
@@ -190,7 +190,7 @@
 					<header class="post-header">
 						<button class="post-avatar-link" type="button" data-profile-link aria-label="Open author profile"><span class="profile-avatar-frame" data-field="avatar-frame" data-border="none" data-sticker="none"><img class="avatar post-avatar" data-field="avatar" alt=""><span class="profile-sticker" data-field="sticker" aria-hidden="true" hidden></span></span></button>
 						<div class="post-identity"><div class="name-line"><button class="post-profile-link" type="button" data-profile-link><span class="post-name" data-field="author"></span><span class="post-handle" data-field="handle"></span></button><span class="post-time" data-field="time"></span></div></div>
-						<button class="post-menu" type="button" data-action="menu" aria-label="More post options">···</button>
+						<div class="post-menu-wrap" data-owner-menu-wrap hidden><button class="post-menu" type="button" data-action="menu" aria-label="More post options" aria-expanded="false">···</button><div class="post-menu-options" data-owner-menu hidden><button type="button" class="post-delete-action" data-owner-action="delete">Delete post</button></div></div>
 					</header>
 					<div class="local-meta" data-field="local-meta"><span>⌖ Townsquare</span> · <span data-field="local-type"></span></div>
 					<p class="post-copy" data-field="text"></p>
@@ -286,7 +286,7 @@
 	<!-- 07. Application scripts -->
 	<script src="supabase-config.js"></script>
 	<script src="posts.js"></script>
-	<script src="api.js?v=profile-media-url-25"></script>
-	<script src="script.js?v=profile-public-view-button-27"></script>
+	<script src="api.js?v=post-delete-only-27"></script>
+	<script src="script.js?v=profile-upload-feed-posts-31"></script>
 </body>
 </html>
