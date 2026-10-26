@@ -1,0 +1,772 @@
+	// 01. Application state
+	const form = document.querySelector("#post-form");
+	const input = document.querySelector("#post-text");
+	const feed = document.querySelector("#feed");
+	const search = document.querySelector("#search");
+	const emptyState = document.querySelector("#empty-state");
+	const viewTitle = document.querySelector("#view-title");
+	const pageSubtitle = document.querySelector(".page-subtitle");
+	const townSquareIntro = document.querySelector("#town-square-intro");
+	const feedControls = document.querySelector(".feed-controls");
+	const toast = document.querySelector("#toast");
+	const following = new Set();
+	const demoJoinedGroups = new Set();
+	const demoComments = new Map();
+	const photoInput = document.querySelector("#photo-input");
+	const storyInput = document.querySelector("#story-input");
+	const authDialog = document.querySelector("#auth-dialog");
+	const commentsDialog = document.querySelector("#comments-dialog");
+	const storyDialog = document.querySelector("#story-dialog");
+	let currentView = "home";
+	let currentFeed = "all";
+	let toastTimer;
+	let signUpMode = false;
+	let selectedPhoto = null;
+	let activeCommentPost = null;
+	let feedRequestId = 0;
+	let currentProfile = null;
+	const fallbackAvatar = "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&q=80";
+	let appearance = { accent: "coral", theme: "light", compact: false };
+
+	function showToast(message) {
+		toast.textContent = message;
+		toast.classList.add("show");
+		window.clearTimeout(toastTimer);
+		toastTimer = window.setTimeout(() => toast.classList.remove("show"), 2000);
+	}
+
+	function requireSignedIn() {
+		if (!window.UnisonApi.isConfigured()) {
+			showToast("Add your Supabase project URL and publishable key to enable accounts.");
+			return false;
+		}
+		if (!window.UnisonAuth.getUser()) {
+			openAuthDialog();
+			return false;
+		}
+		return true;
+	}
+
+	function openAuthDialog(message = "Sign in to post, like, save, and join groups.") {
+		if (!window.UnisonApi.isConfigured()) {
+			showToast("Supabase is not configured yet.");
+			return;
+		}
+		document.querySelector("#auth-message").textContent = message;
+		if (!authDialog.open) authDialog.showModal();
+	}
+
+	function updateAccount(user, profile = currentProfile) {
+		const label = document.querySelector("#account-label");
+		const name = document.querySelector("#sidebar-account-name");
+		const handle = document.querySelector("#sidebar-account-handle");
+		const metadata = user?.user_metadata || {};
+		const displayName = profile?.display_name || metadata.display_name || user?.email?.split("@")[0] || "Alex Morgan";
+		label.textContent = user ? displayName : "Sign in";
+		name.textContent = displayName;
+		handle.textContent = profile?.handle ? `@${profile.handle}` : metadata.handle ? `@${metadata.handle}` : user ? user.email : "@alexm";
+		const avatar = profile?.avatar_url || metadata.avatar_url || fallbackAvatar;
+		document.querySelectorAll("#account-button .avatar, .account .avatar, #composer-avatar").forEach((image) => { image.src = avatar; });
+		document.querySelector("#auth-signout").hidden = !user;
+	}
+
+	async function loadMyProfile() {
+		if (!window.UnisonAuth.getUser() || !window.UnisonApi.isConfigured()) return null;
+		currentProfile = await window.UnisonApi.getMyProfile();
+		updateAccount(window.UnisonAuth.getUser(), currentProfile);
+		return currentProfile;
+	}
+
+	// 02. Feed rendering and filtering
+	function renderPost(postData) {
+		const template = document.querySelector("#post-template");
+		const post = template.content.firstElementChild.cloneNode(true);
+		if (postData.id) post.dataset.postId = postData.id;
+		if (postData.saved) post.classList.add("saved");
+		post.dataset.author = postData.handle;
+		post.dataset.search = `${postData.author} ${postData.handle} ${postData.search || ""} ${postData.text}`.toLowerCase();
+
+		if (postData.local) {
+			post.classList.add("town-square-post");
+			post.dataset.local = "true";
+			post.querySelector('[data-field="local-type"]').textContent = postData.localType;
+		} else {
+			post.querySelector('[data-field="local-meta"]').remove();
+		}
+
+		post.querySelector('[data-field="avatar"]').src = postData.avatar;
+		post.querySelector('[data-field="author"]').textContent = postData.author;
+		post.querySelector('[data-field="handle"]').textContent = postData.handle;
+		post.querySelector('[data-field="time"]').textContent = `· ${postData.time}`;
+		const textElement = post.querySelector('[data-field="text"]');
+		postData.text.split(/(#[A-Za-z0-9_]+)/g).forEach((part) => {
+			if (part.startsWith("#")) {
+				const tag = document.createElement("span");
+				tag.className = "tag";
+				tag.textContent = part;
+				textElement.append(tag);
+			} else {
+				textElement.append(document.createTextNode(part));
+			}
+		});
+
+		if (postData.image) {
+			const image = post.querySelector('[data-field="image"]');
+			image.src = postData.image;
+			image.alt = postData.imageAlt || "";
+		} else {
+			post.querySelector('[data-field="image"]').remove();
+		}
+
+		const likeButton = post.querySelector('[data-action="like"]');
+		likeButton.setAttribute("aria-pressed", String(Boolean(postData.liked)));
+		likeButton.classList.toggle("liked", Boolean(postData.liked));
+		likeButton.querySelector("[data-count]").textContent = String(postData.likes || 0);
+		likeButton.querySelector("[data-label]").textContent = postData.liked ? "Liked" : "Like";
+		likeButton.querySelector('[data-field="like-icon"]').textContent = postData.liked ? "♥" : "♡";
+		const saveButton = post.querySelector('[data-action="save"]');
+		saveButton.setAttribute("aria-pressed", String(Boolean(postData.saved)));
+		saveButton.classList.toggle("saved", Boolean(postData.saved));
+		saveButton.querySelector("[data-label]").textContent = postData.saved ? "Saved" : "Save";
+		post.querySelector('[data-field="replies"]').textContent = `${postData.replies || 0} replies`;
+		return post;
+	}
+
+	let feedPosts = [...window.UnisonData.posts];
+	function renderFeed() {
+		feed.replaceChildren(...feedPosts.map(renderPost));
+		applyFilters();
+	}
+
+	function setGroupButton(button, joined) {
+		button.setAttribute("aria-pressed", String(joined));
+		button.classList.toggle("joined", joined);
+		button.textContent = joined ? "Joined" : "Join";
+	}
+
+	function setFollowButton(button, isFollowing) {
+		button.setAttribute("aria-pressed", String(isFollowing));
+		button.classList.toggle("following", isFollowing);
+		button.textContent = isFollowing ? "Following" : "Follow";
+	}
+
+	async function refreshGroupMemberships() {
+		if (!window.UnisonApi.isConfigured() || !window.UnisonAuth.getUser()) return;
+		const memberships = await window.UnisonApi.listGroupMemberships();
+		const joined = new Set(memberships.map((membership) => membership.group_id));
+		document.querySelectorAll("[data-group-id]").forEach((button) => setGroupButton(button, joined.has(button.dataset.groupId)));
+	}
+
+	async function refreshPeople() {
+		if (!window.UnisonApi.isConfigured()) return;
+		const people = await window.UnisonApi.listPeople();
+		const list = document.querySelector("#people-list");
+		list.replaceChildren();
+		people.forEach((person) => {
+			const row = document.createElement("div");
+			row.className = "person";
+			const avatar = document.createElement("img");
+			avatar.className = "avatar";
+			avatar.src = person.avatar_url || fallbackAvatar;
+			avatar.alt = "";
+			const details = document.createElement("div");
+			details.className = "person-meta";
+			const name = document.createElement("span");
+			name.className = "person-name";
+			name.textContent = person.display_name || person.handle;
+			const handle = document.createElement("span");
+			handle.className = "person-handle";
+			handle.textContent = `@${person.handle}`;
+			details.append(name, handle);
+			if (person.bio) {
+				const bio = document.createElement("span");
+				bio.className = "person-bio";
+				bio.textContent = person.bio;
+				details.append(bio);
+			}
+			const follow = document.createElement("button");
+			follow.className = "follow";
+			follow.type = "button";
+			follow.dataset.followId = person.id;
+			follow.setAttribute("aria-pressed", "false");
+			follow.textContent = "Follow";
+			row.append(avatar, details, follow);
+			list.append(row);
+		});
+		await refreshFollowState();
+	}
+
+	async function refreshFollowState() {
+		if (!window.UnisonApi.isConfigured() || !window.UnisonAuth.getUser()) return;
+		const followedIds = new Set(await window.UnisonApi.listFollowedIds());
+		document.querySelectorAll("[data-follow-id]").forEach((button) => setFollowButton(button, followedIds.has(button.dataset.followId)));
+	}
+
+	function addStoryCard({ image, name, avatar = "" }, { prepend = false } = {}) {
+		const story = document.createElement("button");
+		story.className = "story";
+		story.type = "button";
+		story.dataset.story = "";
+		story.dataset.storyImage = image;
+		story.style.backgroundImage = `url("${image}")`;
+		const ring = document.createElement("span");
+		ring.className = "story-ring";
+		if (avatar) {
+			const avatarImage = document.createElement("img");
+			avatarImage.src = avatar;
+			avatarImage.alt = "";
+			ring.append(avatarImage);
+		}
+		const label = document.createElement("span");
+		label.textContent = name;
+		story.append(ring, label);
+		const stories = document.querySelector(".stories");
+		if (prepend) stories.insertBefore(story, stories.children[1] || null);
+		else stories.append(story);
+		return story;
+	}
+
+	async function refreshStories() {
+		if (!window.UnisonApi.isConfigured()) return;
+		const stories = await window.UnisonApi.listStories();
+		document.querySelectorAll(".story[data-supabase-story]").forEach((story) => story.remove());
+		stories.forEach((story) => {
+			const card = addStoryCard(story, { prepend: true });
+			card.dataset.supabaseStory = story.id;
+			card.dataset.storyCaption = story.caption || "";
+			if (story.avatar) {
+				const avatar = document.createElement("img");
+				avatar.src = story.avatar;
+				avatar.alt = "";
+				card.querySelector(".story-ring").append(avatar);
+			}
+		});
+	}
+
+	async function refreshSupabaseFeed() {
+		if (!window.UnisonApi.isConfigured()) return;
+		const requestId = ++feedRequestId;
+		const scope = currentView === "townsquare" ? "townsquare" : currentView === "saved" ? "saved" : currentFeed === "following" ? "following" : "home";
+		const results = await window.UnisonApi.listPosts({ scope, search: search.value.trim() });
+		if (requestId !== feedRequestId) return;
+		feedPosts = results;
+		renderFeed();
+	}
+
+	renderFeed();
+	updateAccount(window.UnisonAuth.getUser());
+	if (window.UnisonApi.isConfigured()) {
+		refreshSupabaseFeed().catch((error) => showToast(error.message));
+		refreshStories().catch((error) => showToast(error.message));
+		refreshPeople().catch((error) => showToast(error.message));
+	}
+
+	function applyFilters() {
+		const query = search.value.trim().toLowerCase();
+		let visible = 0;
+		feed.querySelectorAll(".post").forEach((post) => {
+			const matchesSearch = !query || `${post.textContent} ${post.dataset.search || ""}`.toLowerCase().includes(query);
+			const matchesView = currentView === "saved" ? post.classList.contains("saved") : currentView !== "townsquare" || post.dataset.local === "true";
+			const matchesFollowing = window.UnisonApi.isConfigured() || currentFeed !== "following" || following.has(post.dataset.author);
+			post.hidden = !(matchesSearch && matchesView && matchesFollowing);
+			if (!post.hidden) visible += 1;
+		});
+		emptyState.style.display = visible ? "none" : "block";
+	}
+
+	function setView(view) {
+		currentView = view;
+		currentFeed = "all";
+		viewTitle.textContent = view === "saved" ? "Saved" : view === "explore" ? "Explore" : view === "townsquare" ? "Townsquare" : "Home";
+		pageSubtitle.textContent = view === "townsquare" ? "Your neighborhood, one conversation at a time." : "Good things happen when we find each other.";
+		townSquareIntro.hidden = view !== "townsquare";
+		feedControls.hidden = view === "townsquare";
+		input.placeholder = view === "townsquare" ? "Share something happening nearby..." : "What's on your mind, Alex?";
+		document.querySelectorAll("[data-view]").forEach((button) => button.classList.toggle("active", button.dataset.view === view));
+		document.querySelectorAll("[data-filter]").forEach((button) => {
+			const active = button.dataset.filter === "all";
+			button.classList.toggle("active", active);
+			button.setAttribute("aria-selected", String(active));
+		});
+		if (view === "explore") search.focus();
+		applyFilters();
+		refreshSupabaseFeed().catch((error) => showToast(error.message));
+	}
+
+	// 03. Navigation and feed controls
+	function setAuthMode(createAccount) {
+		signUpMode = createAccount;
+		document.querySelector("#auth-title").textContent = createAccount ? "Create your account" : "Sign in";
+		document.querySelector("#auth-submit").textContent = createAccount ? "Create account" : "Sign in";
+		document.querySelector("#auth-mode-toggle").textContent = createAccount ? "Already have an account? Sign in" : "Create an account";
+		document.querySelector("#auth-handle-field").hidden = !createAccount;
+		document.querySelector("#auth-name-field").hidden = !createAccount;
+		document.querySelector("#auth-handle").required = createAccount;
+		document.querySelector("#auth-name").required = createAccount;
+		document.querySelector("#auth-password").autocomplete = createAccount ? "new-password" : "current-password";
+	}
+
+	document.querySelector("#account-button").addEventListener("click", () => {
+		const user = window.UnisonAuth.getUser();
+		if (user) {
+			setAuthMode(false);
+			document.querySelector("#auth-title").textContent = "Your account";
+			document.querySelector("#auth-message").textContent = `Signed in as ${user.email}.`;
+			document.querySelector("#auth-email").closest(".dialog-field").hidden = true;
+			document.querySelector("#auth-password").closest(".dialog-field").hidden = true;
+			document.querySelector("#auth-submit").hidden = true;
+			document.querySelector("#auth-mode-toggle").hidden = true;
+			document.querySelector("#profile-editor").hidden = false;
+			document.querySelector("#auth-signout").hidden = false;
+			loadMyProfile().then((profile) => {
+				if (!profile) return;
+				document.querySelector("#profile-display-name").value = profile.display_name || "";
+				document.querySelector("#profile-handle").value = profile.handle || "";
+				document.querySelector("#profile-bio").value = profile.bio || "";
+				document.querySelector("#profile-avatar-preview").src = profile.avatar_url || fallbackAvatar;
+			}).catch((error) => showToast(error.message));
+			if (!authDialog.open) authDialog.showModal();
+			return;
+		}
+		document.querySelector("#auth-email").closest(".dialog-field").hidden = false;
+		document.querySelector("#auth-password").closest(".dialog-field").hidden = false;
+		document.querySelector("#auth-submit").hidden = false;
+		document.querySelector("#auth-mode-toggle").hidden = false;
+		document.querySelector("#profile-editor").hidden = true;
+		setAuthMode(false);
+		openAuthDialog();
+	});
+	document.querySelector("#profile-avatar-file").addEventListener("change", (event) => {
+		const file = event.currentTarget.files[0];
+		if (!file) return;
+		if (!file.type.startsWith("image/") || file.size > 5 * 1024 * 1024) {
+			event.currentTarget.value = "";
+			return showToast("Choose an image smaller than 5 MB.");
+		}
+		document.querySelector("#profile-avatar-preview").src = URL.createObjectURL(file);
+	});
+	document.querySelector("#profile-save").addEventListener("click", async (event) => {
+		const button = event.currentTarget;
+		const displayName = document.querySelector("#profile-display-name").value.trim();
+		const handle = document.querySelector("#profile-handle").value.trim().replace(/^@/, "");
+		const bio = document.querySelector("#profile-bio").value.trim();
+		const photo = document.querySelector("#profile-avatar-file").files[0];
+		if (!displayName) return showToast("Add a display name.");
+		if (!/^[A-Za-z0-9_]{2,24}$/.test(handle)) return showToast("Use 2–24 letters, numbers, or underscores for your handle.");
+		button.disabled = true;
+		button.textContent = "Saving…";
+		try {
+			let avatarUrl = currentProfile?.avatar_url || "";
+			if (photo) avatarUrl = await window.UnisonApi.uploadProfileImage(photo);
+			currentProfile = await window.UnisonApi.updateMyProfile({ handle, displayName, bio, avatarUrl });
+			updateAccount(window.UnisonAuth.getUser(), currentProfile);
+			document.querySelector("#profile-avatar-preview").src = currentProfile.avatar_url || fallbackAvatar;
+			document.querySelector("#profile-avatar-file").value = "";
+			await Promise.all([refreshSupabaseFeed(), refreshPeople(), refreshStories()]);
+			showToast("Profile saved.");
+		} catch (error) {
+			showToast(error.message);
+		} finally {
+			button.disabled = false;
+			button.textContent = "Save profile";
+		}
+	});
+	document.querySelectorAll("[data-close-dialog]").forEach((button) => button.addEventListener("click", () => button.closest("dialog").close()));
+	document.querySelector("#auth-password-toggle").addEventListener("click", (event) => {
+		const password = document.querySelector("#auth-password");
+		const visible = password.type === "password";
+		password.type = visible ? "text" : "password";
+		event.currentTarget.textContent = visible ? "Hide" : "Show";
+		event.currentTarget.setAttribute("aria-pressed", String(visible));
+	});
+	authDialog.addEventListener("close", () => {
+		document.querySelector("#auth-password").type = "password";
+		const toggle = document.querySelector("#auth-password-toggle");
+		toggle.textContent = "Show";
+		toggle.setAttribute("aria-pressed", "false");
+	});
+	document.querySelector("#auth-mode-toggle").addEventListener("click", () => setAuthMode(!signUpMode));
+	document.querySelector("#auth-form").addEventListener("submit", async (event) => {
+		event.preventDefault();
+		if (!window.UnisonApi.isConfigured()) return openAuthDialog();
+		const credentials = {
+			email: document.querySelector("#auth-email").value,
+			password: document.querySelector("#auth-password").value
+		};
+		try {
+			if (signUpMode) {
+				const result = await window.UnisonAuth.signUp({
+					...credentials,
+					handle: document.querySelector("#auth-handle").value.trim(),
+					displayName: document.querySelector("#auth-name").value.trim()
+				});
+				if (result.needsEmailConfirmation) {
+					setAuthMode(false);
+					document.querySelector("#auth-password").value = "";
+					document.querySelector("#auth-message").textContent = "Check your email for a confirmation link. Once confirmed, sign in with your email and password.";
+					showToast("Confirmation email sent. Check your inbox, then sign in.");
+					return;
+				}
+			} else {
+				await window.UnisonAuth.signIn(credentials);
+			}
+			currentProfile = null;
+			await loadMyProfile();
+			updateAccount(window.UnisonAuth.getUser(), currentProfile);
+			authDialog.close();
+			await refreshSupabaseFeed();
+			await refreshGroupMemberships();
+			await refreshStories();
+			await refreshPeople();
+			showToast("You are signed in.");
+		} catch (error) {
+			showToast(error.message);
+		}
+	});
+	document.querySelector("#auth-signout").addEventListener("click", async () => {
+		try {
+			await window.UnisonAuth.signOut();
+			currentProfile = null;
+			updateAccount(null);
+			document.querySelector("#auth-email").closest(".dialog-field").hidden = false;
+			document.querySelector("#auth-password").closest(".dialog-field").hidden = false;
+			document.querySelector("#auth-submit").hidden = false;
+			document.querySelector("#auth-mode-toggle").hidden = false;
+			document.querySelector("#profile-editor").hidden = true;
+			setAuthMode(false);
+			authDialog.close();
+			setView("home");
+			showToast("You are signed out.");
+		} catch (error) {
+			showToast(error.message);
+		}
+	});
+
+	document.querySelector("[data-attach-photo]").addEventListener("click", () => photoInput.click());
+	photoInput.addEventListener("change", () => {
+		selectedPhoto = photoInput.files[0] || null;
+		const preview = document.querySelector("#photo-preview");
+		preview.hidden = !selectedPhoto;
+		if (selectedPhoto) document.querySelector("#photo-preview-image").src = URL.createObjectURL(selectedPhoto);
+	});
+	document.querySelector("[data-remove-photo]").addEventListener("click", () => {
+		selectedPhoto = null;
+		photoInput.value = "";
+		document.querySelector("#photo-preview").hidden = true;
+	});
+	document.querySelector("[data-open-feelings]").addEventListener("click", (event) => {
+		const menu = document.querySelector("#feeling-menu");
+		menu.hidden = !menu.hidden;
+		event.currentTarget.setAttribute("aria-expanded", String(!menu.hidden));
+	});
+	document.querySelectorAll("[data-feeling]").forEach((button) => button.addEventListener("click", () => {
+		input.value = `${input.value.trim()} ${button.dataset.feeling}`.trim();
+		document.querySelector("#feeling-menu").hidden = true;
+		document.querySelector("[data-open-feelings]").setAttribute("aria-expanded", "false");
+		input.focus();
+	}));
+	document.querySelector("[data-create-story]").addEventListener("click", () => storyInput.click());
+	storyInput.addEventListener("change", async () => {
+		const imageFile = storyInput.files[0];
+		if (!imageFile) return;
+		if (window.UnisonApi.isConfigured() && !requireSignedIn()) return;
+		try {
+			const story = window.UnisonApi.isConfigured()
+				? await window.UnisonApi.createStory({ imageFile })
+				: { image: URL.createObjectURL(imageFile), name: "Your story" };
+			addStoryCard(story, { prepend: true });
+			showToast("Story added for this session.");
+		} catch (error) {
+			showToast(error.message);
+		} finally {
+			storyInput.value = "";
+		}
+	});
+	document.querySelector(".stories").addEventListener("click", (event) => {
+		const story = event.target.closest("[data-story]");
+		if (!story) return;
+		const background = story.dataset.storyImage || getComputedStyle(story).backgroundImage;
+		const imageUrl = background.match(/url\(["']?(.*?)["']?\)/)?.[1];
+		if (!imageUrl) return;
+		document.querySelector("#story-image").src = imageUrl;
+		document.querySelector("#story-title").textContent = story.querySelector(":scope > span:last-child").textContent;
+		storyDialog.showModal();
+	});
+
+	const contactSearch = document.querySelector("#contact-search");
+	document.querySelector("#contact-search-toggle").addEventListener("click", (event) => {
+		contactSearch.hidden = !contactSearch.hidden;
+		event.currentTarget.setAttribute("aria-expanded", String(!contactSearch.hidden));
+		if (!contactSearch.hidden) contactSearch.focus();
+	});
+	contactSearch.addEventListener("input", () => {
+		const query = contactSearch.value.trim().toLowerCase();
+		document.querySelectorAll(".contact-list .contact").forEach((contact) => {
+			contact.hidden = !contact.textContent.toLowerCase().includes(query);
+		});
+	});
+	document.querySelectorAll("[data-group-id]").forEach((button) => button.addEventListener("click", async () => {
+		const shouldJoin = button.getAttribute("aria-pressed") !== "true";
+		if (window.UnisonApi.isConfigured() && !requireSignedIn()) return;
+		try {
+			if (window.UnisonApi.isConfigured()) await window.UnisonApi.toggleGroupMembership(button.dataset.groupId, shouldJoin);
+			else if (shouldJoin) demoJoinedGroups.add(button.dataset.groupId);
+			else demoJoinedGroups.delete(button.dataset.groupId);
+			setGroupButton(button, shouldJoin);
+		} catch (error) {
+			showToast(error.message);
+		}
+	}));
+	document.querySelectorAll("[data-coming-soon]").forEach((button) => button.addEventListener("click", () => showToast("That section is not available yet.")));
+	document.querySelectorAll("[data-scroll-to]").forEach((button) => button.addEventListener("click", () => {
+		document.querySelector(`#${button.dataset.scrollTo}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
+	}));
+	document.querySelectorAll("[data-view]").forEach((button) => button.addEventListener("click", () => setView(button.dataset.view)));
+	document.querySelectorAll("[data-filter]").forEach((button) => button.addEventListener("click", () => {
+		currentView = "home";
+		currentFeed = button.dataset.filter;
+		viewTitle.textContent = currentFeed === "following" ? "Your people, first." : "Your circle, in sync.";
+		document.querySelectorAll("[data-filter]").forEach((item) => {
+			const active = item.dataset.filter === currentFeed;
+			item.classList.toggle("active", active);
+			item.setAttribute("aria-selected", String(active));
+		});
+		applyFilters();
+			refreshSupabaseFeed().catch((error) => showToast(error.message));
+	}));
+	document.querySelectorAll("[data-focus-composer]").forEach((button) => button.addEventListener("click", () => {
+		input.focus();
+		document.querySelector(".composer").scrollIntoView({ behavior: "smooth", block: "center" });
+	}));
+	document.querySelector("#people-list").addEventListener("click", async (event) => {
+		const button = event.target.closest("button.follow");
+		if (!button) return;
+		const isFollowing = button.getAttribute("aria-pressed") === "true";
+		if (window.UnisonApi.isConfigured()) {
+			if (!requireSignedIn()) return;
+			if (!button.dataset.followId) return showToast("Demo profiles are not in your Supabase project.");
+			try {
+				await window.UnisonApi.toggleFollow(button.dataset.followId, !isFollowing);
+			} catch (error) {
+				return showToast(error.message);
+			}
+		} else {
+			const handle = button.dataset.followHandle;
+			if (isFollowing) following.delete(handle);
+			else following.add(handle);
+		}
+		setFollowButton(button, !isFollowing);
+		applyFilters();
+	});
+	document.querySelectorAll("[data-topic]").forEach((button) => button.addEventListener("click", () => {
+		search.value = button.dataset.topic;
+		setView("explore");
+		applyFilters();
+	}));
+	search.addEventListener("input", applyFilters);
+
+	function postDataForElement(postElement) {
+		return feedPosts.find((post) => post.id
+			? post.id === postElement.dataset.postId
+			: post.handle === postElement.dataset.author);
+	}
+
+	function renderComments(comments) {
+		const list = document.querySelector("#comments-list");
+		list.replaceChildren();
+		if (!comments.length) {
+			const empty = document.createElement("p");
+			empty.className = "dialog-copy";
+			empty.textContent = "No replies yet. Start the conversation.";
+			list.append(empty);
+			return;
+		}
+		comments.forEach((comment) => {
+			const item = document.createElement("div");
+			item.className = "comment-item";
+			const author = document.createElement("strong");
+			author.textContent = comment.profiles?.display_name || comment.author || "Unison member";
+			const text = document.createElement("span");
+			text.textContent = comment.body;
+			item.append(author, text);
+			list.append(item);
+		});
+	}
+
+	async function openComments(postElement) {
+		activeCommentPost = postElement;
+		const postData = postDataForElement(postElement);
+		if (window.UnisonApi.isConfigured() && !postElement.dataset.postId) {
+			showToast("This sample post is not on your Supabase backend.");
+			return;
+		}
+		document.querySelector("#comments-title").textContent = `Replies to ${postElement.querySelector(".post-name").textContent}`;
+		commentsDialog.showModal();
+		try {
+			const comments = window.UnisonApi.isConfigured() && postElement.dataset.postId
+				? await window.UnisonApi.listComments(postElement.dataset.postId)
+				: demoComments.get(postElement.dataset.postId || postData?.handle) || [];
+			renderComments(comments);
+		} catch (error) {
+			showToast(error.message);
+		}
+	}
+
+	// 04. Post actions and composer
+	feed.addEventListener("click", async (event) => {
+		const button = event.target.closest("button[data-action]");
+		if (!button) return;
+		const post = button.closest(".post");
+		const postData = postDataForElement(post);
+		if (button.dataset.action === "like") {
+			const liked = button.getAttribute("aria-pressed") === "true";
+			if (window.UnisonApi.isConfigured()) {
+				if (!requireSignedIn()) return;
+				if (!post.dataset.postId) return showToast("This sample post is not on your Supabase backend.");
+				try {
+					await window.UnisonApi.likePost(post.dataset.postId, !liked);
+				} catch (error) {
+					return showToast(error.message);
+				}
+			}
+			if (postData) {
+				postData.liked = !liked;
+				postData.likes = Math.max(0, (postData.likes || 0) + (liked ? -1 : 1));
+			}
+			button.setAttribute("aria-pressed", String(!liked));
+			button.classList.toggle("liked", !liked);
+			button.querySelector(".action-icon").textContent = liked ? "♡" : "♥";
+			button.querySelector("[data-count]").textContent = String(postData?.likes ?? Number(button.querySelector("[data-count]").textContent) + (liked ? -1 : 1));
+			button.querySelector("[data-label]").textContent = liked ? "Like" : "Liked";
+		} else if (button.dataset.action === "save") {
+			const saved = button.getAttribute("aria-pressed") === "true";
+			if (window.UnisonApi.isConfigured()) {
+				if (!requireSignedIn()) return;
+				if (!post.dataset.postId) return showToast("This sample post is not on your Supabase backend.");
+				try {
+					await window.UnisonApi.savePost(post.dataset.postId, !saved);
+				} catch (error) {
+					return showToast(error.message);
+				}
+			}
+			post.classList.toggle("saved", !saved);
+			button.setAttribute("aria-pressed", String(!saved));
+			button.classList.toggle("saved", !saved);
+			button.querySelector("[data-label]").textContent = saved ? "Save" : "Saved";
+			if (postData) postData.saved = !saved;
+			showToast(!saved ? "Added to saved posts" : "Removed from saved posts");
+			if (currentView === "saved") applyFilters();
+		} else if (button.dataset.action === "reply") {
+			await openComments(post);
+		} else if (button.dataset.action === "share") {
+			try {
+				await navigator.clipboard.writeText(window.location.href);
+				showToast("Page link copied");
+			} catch {
+				showToast("Copy the page address to share this post.");
+			}
+		} else if (button.classList.contains("post-menu")) {
+			showToast("Post options are not available yet.");
+		}
+	});
+
+	document.querySelector("#comment-form").addEventListener("submit", async (event) => {
+		event.preventDefault();
+		if (!activeCommentPost) return;
+		const input = document.querySelector("#comment-text");
+		const body = input.value.trim();
+		if (!body) return;
+		if (window.UnisonApi.isConfigured() && !requireSignedIn()) return;
+		try {
+			const postData = postDataForElement(activeCommentPost);
+			const key = activeCommentPost.dataset.postId || postData?.handle;
+			let comments;
+			if (window.UnisonApi.isConfigured()) {
+				if (!activeCommentPost.dataset.postId) return showToast("This sample post is not on your Supabase backend.");
+				await window.UnisonApi.createComment(activeCommentPost.dataset.postId, body);
+				comments = await window.UnisonApi.listComments(activeCommentPost.dataset.postId);
+			} else {
+				comments = demoComments.get(key) || [];
+				comments.push({ author: "Alex Morgan", body });
+				demoComments.set(key, comments);
+				if (postData) postData.replies = (postData.replies || 0) + 1;
+			}
+			renderComments(comments);
+			activeCommentPost.querySelector('[data-field="replies"]').textContent = `${postData?.replies ?? comments.length} replies`;
+			input.value = "";
+		} catch (error) {
+			showToast(error.message);
+		}
+	});
+
+	form.addEventListener("submit", async (event) => {
+		event.preventDefault();
+		const text = input.value.trim();
+		if (!text) return showToast("Write a message before sharing.");
+		if (window.UnisonApi.isConfigured() && !requireSignedIn()) return;
+
+		const user = window.UnisonAuth.getUser();
+		const metadata = user?.user_metadata || {};
+		const postData = {
+			id: crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`,
+			author: metadata.display_name || user?.email?.split("@")[0] || "Alex Morgan",
+			handle: metadata.handle ? `@${metadata.handle}` : user ? `@${user.email?.split("@")[0]}` : "@alexm",
+			time: "now",
+			avatar: metadata.avatar_url || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&q=80",
+			text,
+			search: text,
+			likes: 0,
+			replies: 0,
+			local: currentView === "townsquare",
+			localType: "Neighbor post",
+			image: selectedPhoto ? URL.createObjectURL(selectedPhoto) : "",
+			imageAlt: selectedPhoto?.name || ""
+		};
+		try {
+			if (window.UnisonApi.isConfigured()) {
+				const savedPost = await window.UnisonApi.createPost({ text, scope: postData.local ? "townsquare" : "home", imageFile: selectedPhoto });
+				Object.assign(postData, savedPost);
+			}
+			feedPosts.unshift(postData);
+			feed.prepend(renderPost(postData));
+			form.reset();
+			selectedPhoto = null;
+			photoInput.value = "";
+			document.querySelector("#photo-preview").hidden = true;
+			if (currentView !== "townsquare") setView("home");
+			applyFilters();
+			showToast(window.UnisonApi.isConfigured() ? "Post published." : "Post added for this session.");
+		} catch (error) {
+			showToast(error.message);
+		}
+	});
+
+	// 05. Session-only appearance controls
+	document.body.dataset.accent = appearance.accent;
+	document.body.dataset.theme = appearance.theme;
+	document.querySelectorAll("[data-accent-choice]").forEach((button) => {
+		button.setAttribute("aria-pressed", String(button.dataset.accentChoice === appearance.accent));
+		button.addEventListener("click", () => {
+			appearance.accent = button.dataset.accentChoice;
+			document.body.dataset.accent = appearance.accent;
+			document.querySelectorAll("[data-accent-choice]").forEach((item) => item.setAttribute("aria-pressed", String(item === button)));
+		});
+	});
+	document.querySelectorAll("[data-theme-choice]").forEach((button) => {
+		button.setAttribute("aria-pressed", String(button.dataset.themeChoice === appearance.theme));
+		button.addEventListener("click", () => {
+			appearance.theme = button.dataset.themeChoice;
+			document.body.dataset.theme = appearance.theme;
+			document.querySelectorAll("[data-theme-choice]").forEach((item) => item.setAttribute("aria-pressed", String(item === button)));
+		});
+	});
+	document.querySelectorAll("[data-accent-choice]").forEach((button) => {
+		button.setAttribute("aria-pressed", String(button.dataset.accentChoice === appearance.accent));
+	});
+	const compact = document.querySelector("#compact-mode");
+	compact.checked = appearance.compact;
+	compact.addEventListener("change", () => {
+		appearance.compact = compact.checked;
+		document.body.classList.toggle("compact", compact.checked);
+	});
+	document.querySelector("#date-label").textContent = new Intl.DateTimeFormat("en", { weekday: "short", month: "short", day: "numeric" }).format(new Date());
