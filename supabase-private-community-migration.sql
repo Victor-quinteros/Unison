@@ -1,6 +1,28 @@
 -- Run in the Supabase SQL Editor. Existing posts remain public to signed-in
 -- members. Only public posts placed in the Community feed are visible to guests.
 
+create table if not exists public.messages (
+	id uuid primary key default gen_random_uuid(),
+	sender_id uuid not null references public.profiles (id) on delete cascade,
+	recipient_id uuid not null references public.profiles (id) on delete cascade,
+	body text not null check (char_length(body) between 1 and 5000),
+	created_at timestamptz not null default now(),
+	check (sender_id <> recipient_id)
+);
+alter table public.messages enable row level security;
+grant select, insert on public.messages to authenticated;
+revoke all on public.messages from anon, public;
+drop policy if exists "Participants read their messages" on public.messages;
+create policy "Participants read their messages"
+	on public.messages for select to authenticated
+	using ((select auth.uid()) = sender_id or (select auth.uid()) = recipient_id);
+drop policy if exists "Users send messages as themselves" on public.messages;
+create policy "Users send messages as themselves"
+	on public.messages for insert to authenticated
+	with check ((select auth.uid()) = sender_id and sender_id <> recipient_id);
+create index if not exists messages_sender_created_at_idx on public.messages (sender_id, created_at desc);
+create index if not exists messages_recipient_created_at_idx on public.messages (recipient_id, created_at desc);
+
 alter table public.posts drop constraint if exists posts_scope_check;
 alter table public.posts
 	add constraint posts_scope_check check (scope in ('home', 'townsquare', 'community'));

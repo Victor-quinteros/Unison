@@ -346,6 +346,40 @@ window.UnisonApi = Object.freeze({
 		if (!rows[0]) return null;
 		return { ...rows[0], avatar_url: await profileAvatarUrl(rows[0].avatar_url).catch(() => "") };
 	},
+	async listConversations() {
+		const session = await requireSession();
+		const params = new URLSearchParams({
+			select: "id,sender_id,recipient_id,body,created_at,sender:profiles!messages_sender_id_fkey(id,handle,display_name,avatar_url),recipient:profiles!messages_recipient_id_fkey(id,handle,display_name,avatar_url)",
+			or: `(sender_id.eq.${session.user.id},recipient_id.eq.${session.user.id})`,
+			order: "created_at.desc",
+			limit: "300"
+		});
+		return supabaseRequest(`messages?${params}`, { auth: true });
+	},
+	async listMessages(otherUserId) {
+		const session = await requireSession();
+		const params = new URLSearchParams({
+			select: "id,sender_id,recipient_id,body,created_at,sender:profiles!messages_sender_id_fkey(id,handle,display_name,avatar_url),recipient:profiles!messages_recipient_id_fkey(id,handle,display_name,avatar_url)",
+			or: `(and(sender_id.eq.${session.user.id},recipient_id.eq.${otherUserId}),and(sender_id.eq.${otherUserId},recipient_id.eq.${session.user.id}))`,
+			order: "created_at.asc",
+			limit: "300"
+		});
+		return supabaseRequest(`messages?${params}`, { auth: true });
+	},
+	async sendMessage(recipientId, body) {
+		const session = await requireSession();
+		const text = String(body || "").trim();
+		if (!text) throw new TypeError("Write a message before sending.");
+		const params = new URLSearchParams({
+			select: "id,sender_id,recipient_id,body,created_at,sender:profiles!messages_sender_id_fkey(id,handle,display_name,avatar_url),recipient:profiles!messages_recipient_id_fkey(id,handle,display_name,avatar_url)"
+		});
+		const rows = await supabaseRequest(`messages?${params}`, {
+			method: "POST", auth: true,
+			headers: { Prefer: "return=representation" },
+			body: { sender_id: session.user.id, recipient_id: recipientId, body: text }
+		});
+		return rows[0];
+	},
 	async updateMyProfile({ handle, displayName, bio, avatarUrl }) {
 		const session = await requireSession();
 		const params = new URLSearchParams({ id: `eq.${session.user.id}` });

@@ -9,7 +9,7 @@
 	<link rel="preconnect" href="https://fonts.googleapis.com">
 	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 	<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
-	<link rel="stylesheet" href="style.css?v=community-public-13">
+	<link rel="stylesheet" href="style.css?v=messaging-15">
 </head>
 <body>
 	<!-- 02. Global navigation -->
@@ -34,6 +34,7 @@
 				<button class="nav-button active" type="button" data-view="home"><span class="nav-icon" aria-hidden="true">⌂</span><span>Home</span></button>
 				<button class="nav-button" type="button" data-view="my-posts"><span class="nav-icon" aria-hidden="true">▤</span><span>My posts</span></button>
 				<button class="nav-button" type="button" data-view="my-profile"><span class="nav-icon" aria-hidden="true">◉</span><span>My profile</span></button>
+				<button class="nav-button" type="button" data-view="messages"><span class="nav-icon" aria-hidden="true">✉</span><span>Messages</span></button>
 				<button class="nav-button" type="button" data-view="explore"><span class="nav-icon" aria-hidden="true">⌕</span><span>Explore</span></button>
 				<button class="nav-button" type="button" data-scroll-to="contacts-panel"><span class="nav-icon" aria-hidden="true">♧</span><span>Friends</span></button>
 				<button class="nav-button" type="button" data-scroll-to="groups-panel"><span class="nav-icon" aria-hidden="true">♧</span><span>Groups</span></button>
@@ -103,6 +104,20 @@
 				<label class="dialog-field">Handle<input id="profile-handle" type="text" maxlength="24" autocomplete="username" pattern="[A-Za-z0-9_]+"></label>
 				<label class="dialog-field">About you<textarea id="profile-bio" maxlength="240" rows="3" placeholder="A little about yourself"></textarea></label>
 				<button class="dialog-primary" id="profile-save" type="button">Save profile</button>
+			</section>
+			<section class="messages-page" id="messages-page" hidden aria-label="Messages">
+				<div class="messages-inbox">
+					<div class="messages-heading"><h2>Inbox</h2><button class="text-link" id="messages-refresh" type="button">Refresh</button></div>
+					<div class="conversation-list" id="conversation-list"><p class="profile-posts-empty">Your conversations will appear here.</p></div>
+				</div>
+			<section class="message-thread" aria-label="Conversation">
+				<div class="message-thread-empty" id="message-thread-empty">Choose a conversation, or open a member profile to start one.</div>
+				<div class="message-thread-content" id="message-thread-content" hidden>
+					<header class="message-thread-header"><img class="avatar" id="message-recipient-avatar" alt=""><div><strong id="message-recipient-name"></strong><span id="message-recipient-handle"></span></div></header>
+					<div class="message-list" id="message-list" aria-live="polite"></div>
+					<form class="message-form" id="message-form"><textarea id="message-input" maxlength="5000" rows="2" placeholder="Write a message..." aria-label="Write a message" required></textarea><button class="dialog-primary" type="submit">Send</button></form>
+				</div>
+			</section>
 			</section>
 
 			<form class="composer" id="post-form">
@@ -203,6 +218,7 @@
 		<button class="nav-button active" type="button" data-view="home" aria-label="Home"><span class="nav-icon" aria-hidden="true">⌂</span><span class="nav-label">Home</span></button>
 		<button class="nav-button" type="button" data-view="my-posts" aria-label="My posts"><span class="nav-icon" aria-hidden="true">▤</span><span class="nav-label">My posts</span></button>
 		<button class="nav-button" type="button" data-view="my-profile" aria-label="My profile"><span class="nav-icon" aria-hidden="true">◉</span><span class="nav-label">Profile</span></button>
+		<button class="nav-button" type="button" data-view="messages" aria-label="Messages"><span class="nav-icon" aria-hidden="true">✉</span><span class="nav-label">Messages</span></button>
 		<button class="nav-button" type="button" data-view="townsquare" aria-label="Townsquare"><span class="nav-icon" aria-hidden="true">⌖</span><span class="nav-label">Town</span></button>
 		<button class="nav-button" type="button" data-view="explore" aria-label="Explore"><span class="nav-icon" aria-hidden="true">⌕</span><span class="nav-label">Explore</span></button>
 		<button class="nav-button" type="button" data-focus-composer aria-label="Write a post"><span class="nav-icon" aria-hidden="true">＋</span><span class="nav-label">Post</span></button>
@@ -238,6 +254,7 @@
 			<div class="public-profile-header"><img class="avatar public-profile-avatar" id="public-profile-avatar" alt=""><div><h2 id="public-profile-name">Member profile</h2><p class="profile-handle" id="public-profile-handle"></p></div></div>
 			<p class="public-profile-bio" id="public-profile-bio"></p>
 			<button class="follow profile-follow" id="public-profile-follow" type="button" hidden>Follow</button>
+			<button class="dialog-primary profile-message" id="public-profile-message" type="button" hidden>Message</button>
 			<h3 class="profile-posts-heading">Posts</h3>
 			<div class="profile-posts" id="public-profile-posts"></div>
 		</div>
@@ -246,7 +263,7 @@
 	<!-- 07. Application scripts -->
 	<script src="supabase-config.js"></script>
 	<script src="posts.js"></script>
-	<script src="api.js?v=community-public-13"></script>
-	<script src="script.js?v=community-public-13"></script>
+	<script src="api.js?v=messaging-15"></script>
+	<script src="script.js?v=messaging-15"></script>
 </body>
 </html>

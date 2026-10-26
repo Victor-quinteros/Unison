@@ -22,6 +22,8 @@
 	const commentsDialog = document.querySelector("#comments-dialog");
 	const storyDialog = document.querySelector("#story-dialog");
 	const profileDialog = document.querySelector("#profile-dialog");
+	const messagesPage = document.querySelector("#messages-page");
+	const messageForm = document.querySelector("#message-form");
 	let currentView = "home";
 	let currentFeed = "all";
 	let lastRouteHash = "";
@@ -33,7 +35,9 @@
 	let profileRequestId = 0;
 	let searchPeopleRequestId = 0;
 	let searchGroupsRequestId = 0;
+	let messageRequestId = 0;
 	let currentProfile = null;
+	let activeConversation = null;
 	const fallbackAvatar = "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&q=80";
 	let appearance = { accent: "coral", theme: "light", compact: false };
 
@@ -325,12 +329,14 @@
 		const avatar = document.querySelector("#public-profile-avatar");
 		const posts = document.querySelector("#public-profile-posts");
 		const follow = document.querySelector("#public-profile-follow");
+		const message = document.querySelector("#public-profile-message");
 		name.textContent = "Loading profile…";
 		handle.textContent = cleanHandle ? `@${cleanHandle}` : "";
 		bio.textContent = "";
 		avatar.src = fallbackAvatar;
 		posts.replaceChildren(Object.assign(document.createElement("p"), { className: "profile-posts-empty", textContent: "Loading posts…" }));
 		follow.hidden = true;
+		message.hidden = true;
 		if (!profileDialog.open) profileDialog.showModal();
 		try {
 			let profile;
@@ -352,6 +358,14 @@
 			handle.textContent = profile.handle ? `@${profile.handle}` : "@member";
 			bio.textContent = profile.bio || "";
 			avatar.src = profile.avatar_url || fallbackAvatar;
+			const signedInUser = window.UnisonAuth.getUser();
+			if (profile.id && signedInUser && profile.id !== signedInUser.id) {
+				message.hidden = false;
+				message.dataset.profileId = profile.id;
+				message.dataset.profileName = profile.display_name || "Unison member";
+				message.dataset.profileHandle = profile.handle ? `@${profile.handle}` : "@member";
+				message.dataset.profileAvatar = profile.avatar_url || fallbackAvatar;
+			}
 			if (profile.id && window.UnisonAuth.getUser() && profile.id !== window.UnisonAuth.getUser().id) {
 				follow.hidden = false;
 				follow.dataset.followId = profile.id;
@@ -387,6 +401,87 @@
 			name.textContent = "Profile unavailable";
 			posts.replaceChildren(Object.assign(document.createElement("p"), { className: "profile-posts-empty", textContent: error.message }));
 		}
+	}
+
+	function conversationProfile(message, userId) {
+		return message.sender_id === userId ? message.recipient : message.sender;
+	}
+
+	function showConversation(profile) {
+		activeConversation = profile;
+		messageRequestId += 1;
+		document.querySelector("#message-thread-empty").hidden = true;
+		document.querySelector("#message-thread-content").hidden = false;
+		document.querySelector("#message-recipient-name").textContent = profile.display_name || "Unison member";
+		document.querySelector("#message-recipient-handle").textContent = profile.handle ? `@${profile.handle}` : "@member";
+		document.querySelector("#message-recipient-avatar").src = profile.avatar_url || fallbackAvatar;
+	}
+
+	async function refreshConversations() {
+		if (!window.UnisonApi.isConfigured() || !window.UnisonAuth.getUser()) return;
+		const list = document.querySelector("#conversation-list");
+		const userId = window.UnisonAuth.getUser().id;
+		const messages = await window.UnisonApi.listConversations();
+		const conversations = new Map();
+		messages.forEach((item) => {
+			const profile = conversationProfile(item, userId);
+			if (profile?.id && !conversations.has(profile.id)) conversations.set(profile.id, { profile, latest: item });
+		});
+		if (!conversations.size) {
+			list.replaceChildren(Object.assign(document.createElement("p"), { className: "profile-posts-empty", textContent: "No messages yet. Visit a member profile and choose Message to start a conversation." }));
+			return;
+		}
+		list.replaceChildren(...[...conversations.values()].map(({ profile, latest }) => {
+			const button = document.createElement("button");
+			button.type = "button";
+			button.className = "conversation-item";
+			button.classList.toggle("active", activeConversation?.id === profile.id);
+			button.dataset.profileId = profile.id;
+			button.dataset.profileName = profile.display_name || "Unison member";
+			button.dataset.profileHandle = profile.handle ? `@${profile.handle}` : "@member";
+			button.dataset.profileAvatar = profile.avatar_url || fallbackAvatar;
+			const avatar = document.createElement("img");
+			avatar.className = "avatar";
+			avatar.src = profile.avatar_url || fallbackAvatar;
+			avatar.alt = "";
+			const copy = document.createElement("span");
+			copy.className = "conversation-copy";
+			const name = document.createElement("strong");
+			name.textContent = profile.display_name || "Unison member";
+			const preview = document.createElement("span");
+			preview.textContent = latest.body;
+			copy.append(name, preview);
+			button.append(avatar, copy);
+			return button;
+		}));
+	}
+
+	async function refreshMessageHistory() {
+		if (!activeConversation || !window.UnisonAuth.getUser()) return;
+		const requestId = ++messageRequestId;
+		const conversationId = activeConversation.id;
+		const list = document.querySelector("#message-list");
+		const messages = await window.UnisonApi.listMessages(conversationId);
+		if (requestId !== messageRequestId || conversationId !== activeConversation?.id) return;
+		const userId = window.UnisonAuth.getUser().id;
+		list.replaceChildren(...messages.map((item) => {
+			const bubble = document.createElement("article");
+			bubble.className = `message-bubble ${item.sender_id === userId ? "sent" : "received"}`;
+			const text = document.createElement("p");
+			text.textContent = item.body;
+			const time = document.createElement("time");
+			time.dateTime = item.created_at;
+			time.textContent = new Intl.DateTimeFormat(undefined, { dateStyle: "short", timeStyle: "short" }).format(new Date(item.created_at));
+			bubble.append(text, time);
+			return bubble;
+		}));
+		list.scrollTop = list.scrollHeight;
+	}
+
+	function startConversation(profile) {
+		if (!requireSignedIn() || !profile?.id) return;
+		showConversation(profile);
+		setView("messages");
 	}
 
 	function addStoryCard({ image, name, avatar = "" }, { prepend = false } = {}) {
@@ -452,12 +547,19 @@
 	function updatePrivateAccess() {
 		const signedOut = !window.UnisonAuth.getUser();
 		document.querySelector("#home").classList.toggle("signed-out", signedOut);
+		document.body.classList.toggle("signed-out", signedOut);
 		document.body.classList.toggle("signed-in", !signedOut);
 		document.querySelector(".app-shell").classList.toggle("signed-in", !signedOut);
 		authGate.hidden = !signedOut;
 		feedRequestId += 1;
 		feedPosts = signedOut ? [...window.UnisonData.posts] : [];
 		renderFeed();
+		if (signedOut) {
+			activeConversation = null;
+			messagesPage.hidden = true;
+			document.querySelector("#message-list").replaceChildren();
+			document.querySelector("#conversation-list").replaceChildren(Object.assign(document.createElement("p"), { className: "profile-posts-empty", textContent: "Sign in to view your conversations." }));
+		}
 	}
 
 	renderFeed();
@@ -504,20 +606,23 @@
 		}
 		currentView = view;
 		currentFeed = view === "my-posts" ? "mine" : "all";
-		viewTitle.textContent = view === "search" ? "Search results" : view === "my-profile" ? "My Profile" : view === "my-posts" ? "My posts" : view === "saved" ? "Saved" : view === "explore" ? "Explore" : view === "townsquare" ? "Townsquare" : view === "community" ? "Community feed" : "Home";
+		viewTitle.textContent = view === "messages" ? "Messages" : view === "search" ? "Search results" : view === "my-profile" ? "My Profile" : view === "my-posts" ? "My posts" : view === "saved" ? "Saved" : view === "explore" ? "Explore" : view === "townsquare" ? "Townsquare" : view === "community" ? "Community feed" : "Home";
 		if (!window.UnisonAuth.getUser()) {
 			if (view === "community") pageSubtitle.textContent = "Public community posts are visible to everyone.";
 			authGate.querySelector("h2").textContent = view === "community" ? "Public community feed" : "Take a look around";
 			authGate.querySelector("p:not(.eyebrow)").textContent = view === "community" ? "Community posts marked public can be viewed without an account. Sign in to post, like, or comment." : "You’re viewing sample posts. The Community feed has public posts; sign in or create an account to join in.";
 		}
 		pageSubtitle.textContent = view === "search" ? `Posts matching “${search.value.trim()}”` : view === "my-profile" ? "Manage your picture and the information people see on your profile." : view === "my-posts" ? "Everything you have shared with your circle." : view === "townsquare" ? "Your neighborhood, one conversation at a time." : view === "community" ? "Posts shared with every signed-in member." : "Good things happen when we find each other.";
+		if (view === "messages") pageSubtitle.textContent = "Private conversations between you and other members.";
 		document.querySelector("#today-label").textContent = view === "search" ? "SEARCH YOUR CIRCLE" : view === "my-profile" ? "YOUR PUBLIC PROFILE" : view === "community" ? "SHARED WITH THE COMMUNITY" : "YOUR PEOPLE, YOUR PACE";
 		if (view === "community") pageSubtitle.textContent = "Public community posts are visible to everyone.";
 		document.querySelector("#home").classList.toggle("search-mode", view === "search");
 		document.querySelector("#home").classList.toggle("profile-mode", view === "my-profile");
+		document.querySelector("#home").classList.toggle("messages-mode", view === "messages");
 		document.querySelector("#my-profile-page").hidden = view !== "my-profile";
+		messagesPage.hidden = view !== "messages";
 		townSquareIntro.hidden = view !== "townsquare";
-		feedControls.hidden = view === "townsquare" || view === "community" || view === "search" || view === "my-profile";
+		feedControls.hidden = view === "townsquare" || view === "community" || view === "search" || view === "my-profile" || view === "messages";
 		input.placeholder = view === "townsquare" ? "Share something happening nearby..." : view === "community" ? "Share with the community..." : "What's on your mind, Alex?";
 		postScope.value = view === "community" ? "community" : "home";
 		document.querySelector("#post-destination").hidden = view === "townsquare" || view === "community";
@@ -539,6 +644,11 @@
 				return;
 			}
 			loadMyProfile().catch((error) => showToast(error.message));
+			return;
+		}
+		if (view === "messages") {
+			refreshConversations().catch((error) => showToast(error.message));
+			if (activeConversation) refreshMessageHistory().catch((error) => showToast(error.message));
 			return;
 		}
 		refreshSupabaseFeed().catch((error) => showToast(error.message));
@@ -866,6 +976,50 @@
 			await refreshPeople();
 		} catch (error) {
 			showToast(error.message);
+		}
+	});
+	document.querySelector("#public-profile-message").addEventListener("click", (event) => {
+		const button = event.currentTarget;
+		startConversation({
+			id: button.dataset.profileId,
+			display_name: button.dataset.profileName,
+			handle: button.dataset.profileHandle,
+			avatar_url: button.dataset.profileAvatar
+		});
+		profileDialog.close();
+	});
+	document.querySelector("#messages-refresh").addEventListener("click", () => {
+		refreshConversations().catch((error) => showToast(error.message));
+		if (activeConversation) refreshMessageHistory().catch((error) => showToast(error.message));
+	});
+	document.querySelector("#conversation-list").addEventListener("click", (event) => {
+		const button = event.target.closest("button[data-profile-id]");
+		if (!button) return;
+		showConversation({
+			id: button.dataset.profileId,
+			display_name: button.dataset.profileName,
+			handle: button.dataset.profileHandle,
+			avatar_url: button.dataset.profileAvatar
+		});
+		refreshConversations().catch((error) => showToast(error.message));
+		refreshMessageHistory().catch((error) => showToast(error.message));
+	});
+	messageForm.addEventListener("submit", async (event) => {
+		event.preventDefault();
+		if (!requireSignedIn() || !activeConversation) return;
+		const messageInput = document.querySelector("#message-input");
+		const sendButton = messageForm.querySelector("button[type='submit']");
+		const text = messageInput.value.trim();
+		if (!text) return;
+		sendButton.disabled = true;
+		try {
+			await window.UnisonApi.sendMessage(activeConversation.id, text);
+			messageInput.value = "";
+			await Promise.all([refreshMessageHistory(), refreshConversations()]);
+		} catch (error) {
+			showToast(error.message);
+		} finally {
+			sendButton.disabled = false;
 		}
 	});
 	document.querySelectorAll("[data-topic]").forEach((button) => button.addEventListener("click", () => {

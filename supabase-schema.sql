@@ -141,6 +141,15 @@ create table if not exists public.stories (
 	created_at timestamptz not null default now()
 );
 
+create table if not exists public.messages (
+	id uuid primary key default gen_random_uuid(),
+	sender_id uuid not null references public.profiles (id) on delete cascade,
+	recipient_id uuid not null references public.profiles (id) on delete cascade,
+	body text not null check (char_length(body) between 1 and 5000),
+	created_at timestamptz not null default now(),
+	check (sender_id <> recipient_id)
+);
+
 insert into public.groups (id, name, description) values
 	('nature-adventure', 'Nature & Adventure', 'Share trails, parks, and outdoor finds.'),
 	('tech-innovation', 'Tech & Innovation', 'Talk about new ideas and technology.'),
@@ -172,6 +181,8 @@ on conflict (id) do nothing;
 
 create index if not exists posts_scope_created_at_idx on public.posts (scope, created_at desc);
 create index if not exists post_comments_post_created_at_idx on public.post_comments (post_id, created_at);
+create index if not exists messages_sender_created_at_idx on public.messages (sender_id, created_at desc);
+create index if not exists messages_recipient_created_at_idx on public.messages (recipient_id, created_at desc);
 create index if not exists follows_followed_id_idx on public.follows (followed_id);
 
 -- 02. Row Level Security
@@ -184,6 +195,7 @@ alter table public.follows enable row level security;
 alter table public.groups enable row level security;
 alter table public.groups_memberships enable row level security;
 alter table public.stories enable row level security;
+alter table public.messages enable row level security;
 
 grant usage on schema public to anon, authenticated;
 grant select on public.profiles, public.groups, public.groups_memberships, public.follows to anon, authenticated;
@@ -191,6 +203,8 @@ grant select on public.posts, public.post_likes, public.post_comments, public.st
 revoke select on public.posts, public.post_likes, public.post_comments, public.stories from anon, public;
 grant select on public.posts to anon;
 grant select, insert, update, delete on public.profiles, public.posts, public.post_likes, public.post_comments, public.saved_posts, public.follows, public.groups_memberships, public.stories to authenticated;
+revoke all on public.messages from anon, public;
+grant select, insert on public.messages to authenticated;
 drop policy if exists "Profiles are readable by everyone" on public.profiles;
 create policy "Profiles are readable by everyone"
 	on public.profiles for select
@@ -254,6 +268,14 @@ drop policy if exists "Users create comments as themselves" on public.post_comme
 create policy "Users create comments as themselves"
 	on public.post_comments for insert to authenticated
 	with check (user_id = (select auth.uid()) and exists (select 1 from public.posts where posts.id = post_comments.post_id));
+drop policy if exists "Participants read their messages" on public.messages;
+create policy "Participants read their messages"
+	on public.messages for select to authenticated
+	using ((select auth.uid()) = sender_id or (select auth.uid()) = recipient_id);
+drop policy if exists "Users send messages as themselves" on public.messages;
+create policy "Users send messages as themselves"
+	on public.messages for insert to authenticated
+	with check ((select auth.uid()) = sender_id and sender_id <> recipient_id);
 drop policy if exists "Users delete their own comments" on public.post_comments;
 create policy "Users delete their own comments"
 	on public.post_comments for delete to authenticated
