@@ -45,9 +45,8 @@
   <!-- 03. Main application layout -->
   <div class="app-shell">
     <aside class="sidebar" aria-label="Main navigation">
-      <nav class="nav-list">
         <button class="nav-button" type="button" data-view="community"><span class="nav-icon" aria-hidden="true">◎</span><span>Community</span></button>
-        <button class="nav-button active" type="button" data-view="home"><span class="nav-icon" aria-hidden="true">⌂</span><span>Home</span></button>
+        <button class="nav-button" type="button" data-view="home"><span class="nav-icon" aria-hidden="true">⌂</span><span>Home</span></button>
         <button class="nav-button" type="button" data-view="my-posts"><span class="nav-icon" aria-hidden="true">▤</span><span>My posts</span></button>
         <button class="nav-button" type="button" data-view="my-profile"><span class="nav-icon" aria-hidden="true">◉</span><span>My profile</span></button>
         <button class="nav-button" type="button" data-view="messages"><span class="nav-icon" aria-hidden="true">✉</span><span>Messages</span></button>
@@ -55,12 +54,10 @@
         <button class="nav-button" type="button" data-view="explore"><span class="nav-icon" aria-hidden="true">⌕</span><span>Explore</span></button>
         <button class="nav-button" type="button" data-scroll-to="contacts-panel"><span class="nav-icon" aria-hidden="true">♧</span><span>Friends</span></button>
         <button class="nav-button" type="button" data-scroll-to="groups-panel"><span class="nav-icon" aria-hidden="true">♧</span><span>Groups</span></button>
-        <button class="nav-button" type="button" data-coming-soon><span class="nav-icon" aria-hidden="true">▤</span><span>Marketplace</span></button>
-        <button class="nav-button" type="button" data-coming-soon><span class="nav-icon" aria-hidden="true">▷</span><span>Watch</span></button>
         <button class="nav-button" type="button" data-view="townsquare"><span class="nav-icon" aria-hidden="true">⌖</span><span>Townsquare</span></button>
-        <button class="nav-button" type="button" data-coming-soon><span class="nav-icon" aria-hidden="true">⚑</span><span>Pages</span></button>
-        <button class="nav-button" type="button" data-coming-soon><span class="nav-icon" aria-hidden="true">▣</span><span>Events</span></button>
-        <button class="nav-button" type="button" data-coming-soon><span class="nav-icon" aria-hidden="true">◷</span><span>Memories</span></button>
+        <button class="nav-button" type="button" data-view="watch"><span class="nav-icon" aria-hidden="true">▷</span><span>Watch</span></button>
+        <button class="nav-button" type="button" data-view="pages"><span class="nav-icon" aria-hidden="true">⚑</span><span>Pages</span></button>
+        <button class="nav-button" type="button" data-view="events"><span class="nav-icon" aria-hidden="true">▣</span><span>Events</span></button>
         <button class="nav-button" type="button" data-view="saved"><span class="nav-icon" aria-hidden="true">♡</span><span>Saved</span></button>
       </nav>
       <section data-demo-content>
@@ -192,6 +189,10 @@
         <div><p class="town-square-label">YOUR NEIGHBORHOOD, IN THE KNOW</p><p class="town-square-copy">Local conversations, useful finds, and small things happening nearby.</p></div>
         <span aria-hidden="true">⌖</span>
       </section>
+      <section class="explore-intro" id="explore-intro" hidden>
+        <div><p class="town-square-label">DISCOVER & CONNECT</p><p class="town-square-copy">Find people, posts, groups, and trending topics.</p></div>
+        <span aria-hidden="true">⌕</span>
+      </section>
 
       <div class="feed-controls">
         <div class="feed-tabs" role="tablist" aria-label="Feed filter"><button class="feed-tab active" type="button" data-filter="all" aria-selected="true">For you</button><button class="feed-tab" type="button" data-filter="following" aria-selected="false">Following</button><button class="feed-tab" type="button" data-filter="mine" aria-selected="false">My posts</button></div>
@@ -264,7 +265,7 @@
   <!-- 06. Mobile navigation -->
   <nav class="mobile-nav" aria-label="Main navigation">
     <button class="nav-button" type="button" data-view="community" aria-label="Community feed"><span class="nav-icon" aria-hidden="true">◎</span><span class="nav-label">Community</span></button>
-    <button class="nav-button active" type="button" data-view="home" aria-label="Home"><span class="nav-icon" aria-hidden="true">⌂</span><span class="nav-label">Home</span></button>
+    <button class="nav-button" type="button" data-view="home" aria-label="Home"><span class="nav-icon" aria-hidden="true">⌂</span><span class="nav-label">Home</span></button>
     <button class="nav-button" type="button" data-view="my-posts" aria-label="My posts"><span class="nav-icon" aria-hidden="true">▤</span><span class="nav-label">My posts</span></button>
     <button class="nav-button" type="button" data-view="my-profile" aria-label="My profile"><span class="nav-icon" aria-hidden="true">◉</span><span class="nav-label">Profile</span></button>
     <button class="nav-button" type="button" data-view="messages" aria-label="Messages"><span class="nav-icon" aria-hidden="true">✉</span><span class="nav-label">Messages</span></button>
@@ -272,6 +273,9 @@
     <button class="nav-button" type="button" data-view="townsquare" aria-label="Townsquare"><span class="nav-icon" aria-hidden="true">⌖</span><span class="nav-label">Town</span></button>
     <button class="nav-button" type="button" data-view="explore" aria-label="Explore"><span class="nav-icon" aria-hidden="true">⌕</span><span class="nav-label">Explore</span></button>
     <button class="nav-button" type="button" data-focus-composer aria-label="Write a post"><span class="nav-icon" aria-hidden="true">＋</span><span class="nav-label">Post</span></button>
+    <button class="nav-button" type="button" data-view="watch" aria-label="Watch"><span class="nav-icon" aria-hidden="true">▷</span><span class="nav-label">Watch</span></button>
+    <button class="nav-button" type="button" data-view="pages" aria-label="Pages"><span class="nav-icon" aria-hidden="true">⚑</span><span class="nav-label">Pages</span></button>
+    <button class="nav-button" type="button" data-view="events" aria-label="Events"><span class="nav-icon" aria-hidden="true">▣</span><span class="nav-label">Events</span></button>
     <button class="nav-button" type="button" data-view="saved" aria-label="Saved posts"><span class="nav-icon" aria-hidden="true">♡</span><span class="nav-label">Saved</span></button>
   </nav>
   <div class="toast" id="toast" role="status" aria-live="polite"></div>

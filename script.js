@@ -935,7 +935,8 @@
 	}
 
 	function setView(view) {
-		if (!window.UnisonAuth.getUser() && view !== "home" && view !== "community" && view !== "public-profile") {
+		const allowedGuestViews = new Set(["home", "community", "public-profile", "explore", "townsquare", "watch", "pages", "events"]);
+		if (!window.UnisonAuth.getUser() && !allowedGuestViews.has(view)) {
 			if (view !== "home") openAuthDialog("Sign in to browse posts and community features.");
 			return;
 		}
@@ -950,13 +951,33 @@
 		currentView = view;
 		currentFeed = view === "my-posts" ? "mine" : "all";
 		persistActiveView();
-		viewTitle.textContent = view === "public-profile" ? "Member profile" : view === "account" ? "My account" : view === "settings" ? "Settings" : view === "messages" ? "Messages" : view === "search" ? "Search results" : view === "my-profile" ? "My Profile" : view === "my-posts" ? "My posts" : view === "saved" ? "Saved" : view === "explore" ? "Explore" : view === "townsquare" ? "Townsquare" : view === "community" ? "Community feed" : view === "notifications" ? "Notifications" : "Home";
-		if (!window.UnisonAuth.getUser()) {
-			if (view === "community") pageSubtitle.textContent = "Public community posts are visible to everyone.";
-			authGate.querySelector("h2").textContent = view === "community" ? "Public community feed" : "Take a look around";
-			authGate.querySelector("p:not(.eyebrow)").textContent = view === "community" ? "Community posts marked public can be viewed without an account. Sign in to post, like, or comment." : "You’re viewing sample posts. The Community feed has public posts; sign in or create an account to join in.";
+		viewTitle.textContent = view === "public-profile" ? "Member profile" : view === "account" ? "My account" : view === "settings" ? "Settings" : view === "messages" ? "Messages" : view === "search" ? "Search results" : view === "my-profile" ? "My Profile" : view === "my-posts" ? "My posts" : view === "saved" ? "Saved" : view === "explore" ? "Explore" : view === "townsquare" ? "Townsquare" : view === "community" ? "Community feed" : view === "notifications" ? "Notifications" : view === "watch" ? "Watch" : view === "pages" ? "Pages" : view === "events" ? "Events" : "Home";
+		if (view === "community" || view === "explore" || view === "townsquare" || view === "watch" || view === "pages" || view === "events") {
+			pageSubtitle.textContent = view === "community" ? "Public community posts are visible to everyone." : view === "explore" ? "Discover people, posts, and groups." : view === "townsquare" ? "Your neighborhood, one conversation at a time." : "Coming soon - check back later.";
 		}
-		pageSubtitle.textContent = view === "search" ? `Posts matching “${search.value.trim()}”` : view === "my-profile" ? "Manage your picture and the information people see on your profile." : view === "my-posts" ? "Everything you have shared with your circle." : view === "townsquare" ? "Your neighborhood, one conversation at a time." : view === "community" ? "Posts shared with every signed-in member." : "Good things happen when we find each other.";
+		if (!window.UnisonAuth.getUser()) {
+			if (view === "community") {
+				pageSubtitle.textContent = "Public community posts are visible to everyone.";
+				authGate.querySelector("h2").textContent = "Public community feed";
+				authGate.querySelector("p:not(.eyebrow)").textContent = "Community posts marked public can be viewed without an account. Sign in to post, like, or comment.";
+			} else if (view === "explore") {
+				pageSubtitle.textContent = "Discover people, posts, and groups.";
+				authGate.querySelector("h2").textContent = "Explore";
+				authGate.querySelector("p:not(.eyebrow)").textContent = "Browse public posts and discover people. Sign in to join the conversation.";
+			} else if (view === "townsquare") {
+				pageSubtitle.textContent = "Your neighborhood, one conversation at a time.";
+				authGate.querySelector("h2").textContent = "Townsquare";
+				authGate.querySelector("p:not(.eyebrow)").textContent = "Browse neighborhood updates. Sign in to post locally.";
+			} else if (["watch", "pages", "events"].includes(view)) {
+				pageSubtitle.textContent = "Coming soon.";
+				authGate.querySelector("h2").textContent = view === "watch" ? "Watch" : view === "pages" ? "Pages" : "Events";
+				authGate.querySelector("p:not(.eyebrow)").textContent = "This section is coming soon. Sign in to get notified when it's ready.";
+			} else {
+				authGate.querySelector("h2").textContent = "Take a look around";
+				authGate.querySelector("p:not(.eyebrow)").textContent = "You’re viewing sample posts. Sign in or create an account to see members’ posts and join the conversation.";
+			}
+		}
+		pageSubtitle.textContent = view === "search" ? `Posts matching “${search.value.trim()}”` : view === "my-profile" ? "Manage your picture and the information people see on your profile." : view === "my-posts" ? "Everything you have shared with your circle." : view === "townsquare" ? "Your neighborhood, one conversation at a time." : view === "community" ? "Posts shared with every signed-in member." : view === "explore" ? "Discover people, posts, and groups." : view === "watch" ? "Videos and shows from your circle." : view === "pages" ? "Pages from communities and creators." : view === "events" ? "Upcoming events near you." : "Good things happen when we find each other.";
 		if (view === "messages") pageSubtitle.textContent = "Private conversations between you and other members.";
 		if (view === "public-profile") pageSubtitle.textContent = "Profile, background, and posts.";
 		if (view === "settings") pageSubtitle.textContent = "Personalize how Unison looks.";
@@ -984,8 +1005,48 @@
 				if (profile && currentView === "account") document.querySelector("#account-handle").value = profile.handle || "";
 			}).catch((error) => showToast(error.message));
 		}
-		townSquareIntro.hidden = view !== "townsquare";
-		feedControls.hidden = view === "townsquare" || view === "community" || view === "search" || view === "my-profile" || view === "messages" || view === "settings" || view === "account" || view === "public-profile" || view === "notifications";
+		if (view === "explore") {
+			if (!window.UnisonAuth.getUser()) {
+				authGate.hidden = false;
+				feed.replaceChildren();
+				emptyState.style.display = "none";
+				document.querySelector("#home").classList.toggle("search-mode", false);
+				document.querySelector("#home").classList.toggle("profile-mode", false);
+				document.querySelector("#home").classList.toggle("messages-mode", false);
+				document.querySelector("#home").classList.toggle("settings-mode", false);
+				document.querySelector("#home").classList.toggle("account-mode", false);
+				document.querySelector("#home").classList.toggle("public-profile-mode", false);
+				document.querySelector("#my-profile-page").hidden = true;
+				publicProfilePage.hidden = true;
+				accountPage.hidden = true;
+				messagesPage.hidden = true;
+				settingsPage.hidden = true;
+				document.querySelector("#notifications-page").hidden = true;
+				townSquareIntro.hidden = true;
+				const exploreIntro = document.querySelector("#explore-intro");
+				if (exploreIntro) exploreIntro.hidden = false;
+				feedControls.hidden = true;
+				document.querySelectorAll("[data-view]").forEach((button) => button.classList.toggle("active", button.dataset.view === view));
+				return;
+			}
+		}
+		if (["community", "explore", "townsquare"].includes(view) && !window.UnisonAuth.getUser()) {
+			townSquareIntro.hidden = view !== "townsquare";
+			const exploreIntro = document.querySelector("#explore-intro");
+			if (exploreIntro) exploreIntro.hidden = view !== "explore";
+			authGate.hidden = false;
+		} else if (view === "home" && !window.UnisonAuth.getUser()) {
+			townSquareIntro.hidden = true;
+			const exploreIntro = document.querySelector("#explore-intro");
+			if (exploreIntro) exploreIntro.hidden = true;
+			authGate.hidden = false;
+		} else {
+			townSquareIntro.hidden = view !== "townsquare";
+			const exploreIntro = document.querySelector("#explore-intro");
+			if (exploreIntro) exploreIntro.hidden = view !== "explore";
+			authGate.hidden = !(view === "home" && !window.UnisonAuth.getUser());
+		}
+		feedControls.hidden = view === "townsquare" || view === "community" || view === "explore" || view === "watch" || view === "pages" || view === "events" || view === "search" || view === "my-profile" || view === "messages" || view === "settings" || view === "account" || view === "public-profile" || view === "notifications";
 		input.placeholder = view === "townsquare" ? "Share something happening nearby..." : view === "community" ? "Share with the community..." : "What's on your mind, Alex?";
 		postScope.value = view === "community" ? "community" : "home";
 		document.querySelector("#post-destination").hidden = view === "townsquare" || view === "community";
@@ -1016,7 +1077,48 @@
 		}
 		if (view === "settings" || view === "account" || view === "public-profile") return;
 		if (view === "notifications") {
+			if (!window.UnisonAuth.getUser()) {
+				openAuthDialog("Sign in to view notifications.");
+				setView("home");
+				return;
+			}
 			refreshNotifications().catch((error) => showToast(error.message));
+			return;
+		}
+		if (!window.UnisonAuth.getUser() && view === "explore") {
+			authGate.hidden = false;
+			feed.replaceChildren();
+			emptyState.style.display = "none";
+			document.querySelector("#home").classList.toggle("search-mode", false);
+			document.querySelector("#home").classList.toggle("profile-mode", false);
+			document.querySelector("#home").classList.toggle("messages-mode", false);
+			document.querySelector("#home").classList.toggle("settings-mode", false);
+			document.querySelector("#home").classList.toggle("account-mode", false);
+			document.querySelector("#home").classList.toggle("public-profile-mode", false);
+			document.querySelector("#my-profile-page").hidden = true;
+			publicProfilePage.hidden = true;
+			accountPage.hidden = true;
+			messagesPage.hidden = true;
+			settingsPage.hidden = true;
+			document.querySelector("#notifications-page").hidden = true;
+			townSquareIntro.hidden = true;
+			const exploreIntro = document.querySelector("#explore-intro");
+			if (exploreIntro) exploreIntro.hidden = false;
+			feedControls.hidden = true;
+			document.querySelectorAll("[data-view]").forEach((button) => button.classList.toggle("active", button.dataset.view === view));
+			return;
+		}
+		if (!window.UnisonAuth.getUser() && (view === "home" || view === "community")) {
+				refreshSupabaseFeed().catch(() => {
+					feedPosts = view === "home" ? [...window.UnisonData.posts] : [];
+					renderFeed();
+					applyFilters();
+				});
+			} else {
+				feedPosts = view === "home" ? [...window.UnisonData.posts] : [];
+				renderFeed();
+				applyFilters();
+			}
 			return;
 		}
 		refreshSupabaseFeed().catch((error) => showToast(error.message));
