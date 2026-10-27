@@ -931,7 +931,7 @@
 			post.hidden = !(matchesSearch && matchesView && matchesFollowing && matchesMine);
 			if (!post.hidden) visible += 1;
 		});
-		emptyState.style.display = visible ? "none" : "block";
+		emptyState.style.display = (visible || ["explore", "watch", "pages", "events"].includes(currentView)) ? "none" : "block";
 	}
 
 	function setView(view) {
@@ -1005,31 +1005,6 @@
 				if (profile && currentView === "account") document.querySelector("#account-handle").value = profile.handle || "";
 			}).catch((error) => showToast(error.message));
 		}
-		if (view === "explore") {
-			if (!window.UnisonAuth.getUser()) {
-				authGate.hidden = false;
-				feed.replaceChildren();
-				emptyState.style.display = "none";
-				document.querySelector("#home").classList.toggle("search-mode", false);
-				document.querySelector("#home").classList.toggle("profile-mode", false);
-				document.querySelector("#home").classList.toggle("messages-mode", false);
-				document.querySelector("#home").classList.toggle("settings-mode", false);
-				document.querySelector("#home").classList.toggle("account-mode", false);
-				document.querySelector("#home").classList.toggle("public-profile-mode", false);
-				document.querySelector("#my-profile-page").hidden = true;
-				publicProfilePage.hidden = true;
-				accountPage.hidden = true;
-				messagesPage.hidden = true;
-				settingsPage.hidden = true;
-				document.querySelector("#notifications-page").hidden = true;
-				townSquareIntro.hidden = true;
-				const exploreIntro = document.querySelector("#explore-intro");
-				if (exploreIntro) exploreIntro.hidden = false;
-				feedControls.hidden = true;
-				document.querySelectorAll("[data-view]").forEach((button) => button.classList.toggle("active", button.dataset.view === view));
-				return;
-			}
-		}
 		if (["community", "explore", "townsquare"].includes(view) && !window.UnisonAuth.getUser()) {
 			townSquareIntro.hidden = view !== "townsquare";
 			const exploreIntro = document.querySelector("#explore-intro");
@@ -1085,38 +1060,21 @@
 			refreshNotifications().catch((error) => showToast(error.message));
 			return;
 		}
-		if (!window.UnisonAuth.getUser() && view === "explore") {
-			authGate.hidden = false;
-			feed.replaceChildren();
-			emptyState.style.display = "none";
-			document.querySelector("#home").classList.toggle("search-mode", false);
-			document.querySelector("#home").classList.toggle("profile-mode", false);
-			document.querySelector("#home").classList.toggle("messages-mode", false);
-			document.querySelector("#home").classList.toggle("settings-mode", false);
-			document.querySelector("#home").classList.toggle("account-mode", false);
-			document.querySelector("#home").classList.toggle("public-profile-mode", false);
-			document.querySelector("#my-profile-page").hidden = true;
-			publicProfilePage.hidden = true;
-			accountPage.hidden = true;
-			messagesPage.hidden = true;
-			settingsPage.hidden = true;
-			document.querySelector("#notifications-page").hidden = true;
-			townSquareIntro.hidden = true;
-			const exploreIntro = document.querySelector("#explore-intro");
-			if (exploreIntro) exploreIntro.hidden = false;
-			feedControls.hidden = true;
-			document.querySelectorAll("[data-view]").forEach((button) => button.classList.toggle("active", button.dataset.view === view));
+		if (["watch", "pages", "events", "explore"].includes(view)) {
+			feedPosts = [];
+			renderFeed();
+			applyFilters();
 			return;
 		}
 		if (!window.UnisonAuth.getUser()) {
-			if (view === "home" || view === "community") {
+			if (view === "community") {
 				refreshSupabaseFeed().catch(() => {
-					feedPosts = view === "home" ? [...window.UnisonData.posts] : [];
+					feedPosts = [];
 					renderFeed();
 					applyFilters();
 				});
 			} else {
-				feedPosts = view === "home" ? [...window.UnisonData.posts] : [];
+				feedPosts = [...window.UnisonData.posts];
 				renderFeed();
 				applyFilters();
 			}
