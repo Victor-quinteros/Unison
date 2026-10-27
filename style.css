@@ -472,7 +472,13 @@ h1 { margin-bottom: 3px; font-family: var(--display); font-size: 20px; font-weig
 .profile-post-time { margin-top: 6px; font-size: 9px; color: var(--muted); }
 .mobile-nav { display: none; }
 body.signed-in .story[data-demo-story], body.signed-in [data-demo-person], body.signed-in [data-demo-content] { display: none; }
-body.signed-out [data-view="messages"] { display: none; }
+body.signed-out .sidebar .nav-button:not([data-view="community"]):not([data-view="home"]):not([data-view="explore"]):not([data-view="townsquare"]):not([data-view="events"]):not([data-view="watch"]),
+body.signed-out .mobile-nav .nav-button:not([data-view="community"]):not([data-view="home"]):not([data-view="explore"]):not([data-view="townsquare"]):not([data-view="events"]):not([data-view="watch"]),
+body.signed-out .sidebar [data-scroll-to],
+body.signed-out .sidebar .account,
+body.signed-out .feed-controls {
+	display: none !important;
+}
 body.signed-in .right-rail > :not(#people-panel) { display: none; }
 body.compact .post { padding: 10px 14px; }
 body.compact .post-copy { margin: 8px 0; }

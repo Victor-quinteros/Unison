@@ -934,11 +934,11 @@
 			post.hidden = !(matchesSearch && matchesView && matchesFollowing && matchesMine);
 			if (!post.hidden) visible += 1;
 		});
-		emptyState.style.display = (visible || ["explore", "watch", "pages", "events"].includes(currentView)) ? "none" : "block";
+		emptyState.style.display = (visible || ["explore", "watch", "events"].includes(currentView)) ? "none" : "block";
 	}
 
 	function setView(view) {
-		const allowedGuestViews = new Set(["home", "community", "public-profile", "explore", "townsquare", "watch", "pages", "events"]);
+		const allowedGuestViews = new Set(["home", "community", "explore", "townsquare", "events", "watch", "public-profile"]);
 		if (!window.UnisonAuth.getUser() && !allowedGuestViews.has(view)) {
 			if (view !== "home") openAuthDialog("Sign in to browse posts and community features.");
 			return;
@@ -971,9 +971,9 @@
 				pageSubtitle.textContent = "Your neighborhood, one conversation at a time.";
 				authGate.querySelector("h2").textContent = "Townsquare";
 				authGate.querySelector("p:not(.eyebrow)").textContent = "Browse neighborhood updates. Sign in to post locally.";
-			} else if (["watch", "pages", "events"].includes(view)) {
+			} else if (["watch", "events"].includes(view)) {
 				pageSubtitle.textContent = "Coming soon.";
-				authGate.querySelector("h2").textContent = view === "watch" ? "Watch" : view === "pages" ? "Pages" : "Events";
+				authGate.querySelector("h2").textContent = view === "watch" ? "Watch" : "Events";
 				authGate.querySelector("p:not(.eyebrow)").textContent = "This section is coming soon. Sign in to get notified when it's ready.";
 			} else {
 				authGate.querySelector("h2").textContent = "Take a look around";
@@ -1063,7 +1063,7 @@
 			refreshNotifications().catch((error) => showToast(error.message));
 			return;
 		}
-		if (["watch", "pages", "events", "explore"].includes(view)) {
+		if (["watch", "events", "explore"].includes(view)) {
 			feedPosts = [];
 			renderFeed();
 			applyFilters();
