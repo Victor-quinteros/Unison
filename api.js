@@ -329,11 +329,22 @@ window.UnisonApi = Object.freeze({
 	},
 	async listComments(postId) {
 		const params = new URLSearchParams({
-			select: "id,body,created_at,profiles!post_comments_user_id_fkey(display_name,handle)",
+			select: "id,user_id,body,created_at,profiles!post_comments_user_id_fkey(display_name,handle)",
 			post_id: `eq.${postId}`,
 			order: "created_at.asc"
 		});
 		return supabaseRequest(`post_comments?${params}`, { auth: true });
+	},
+	async deleteComment(commentId) {
+		await requireSession();
+		const params = new URLSearchParams({ id: `eq.${commentId}`, select: "id" });
+		const rows = await supabaseRequest(`post_comments?${params}`, {
+			method: "DELETE",
+			auth: true,
+			headers: { Prefer: "return=representation" }
+		});
+		if (!rows.length) throw new Error("You can only delete your comment or a comment on your own post.");
+		return true;
 	},
 	async listPeople() {
 		await requireSession();
