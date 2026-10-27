@@ -175,7 +175,7 @@ async function mapPost(row) {
 		profileSticker: profile.profile_sticker || "none",
 		author: profile.display_name || "Unison member",
 		handle: profile.handle ? `@${profile.handle}` : "@member",
-		time: new Intl.RelativeTimeFormat("en", { numeric: "auto" }).format(-Math.max(1, Math.floor((Date.now() - new Date(row.created_at).getTime()) / 3600000)), "hour"),
+		time: new Intl.RelativeTimeFormat("en", { numeric: "auto" }).format(-Math.max(0, Math.floor((Date.now() - new Date(row.created_at).getTime()) / 3600000)), "hour"),
 		avatar,
 		text: row.body,
 		search: row.body,
