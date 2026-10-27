@@ -239,7 +239,7 @@ window.UnisonApi = Object.freeze({
 	isConfigured: isSupabaseConfigured,
 	async listPosts({ scope = "home", search = "", profileUserId = "", groupId = "" } = {}) {
 		const session = supabaseSession ? await requireSession() : null;
-		if (!session && scope !== "community" && !(scope === "profile" && profileUserId) && scope !== "group") {
+		if (!session && scope !== "community" && !(scope === "profile" && profileUserId)) {
 			throw new Error("Sign in to view these posts.");
 		}
 		const params = new URLSearchParams({ select: postSelect(), order: "created_at.desc" });
@@ -252,6 +252,8 @@ window.UnisonApi = Object.freeze({
 			params.set("group_id", `eq.${groupId}`);
 		}
 		if (profileUserId) params.set("user_id", `eq.${profileUserId}`);
+		// Guest requests are always restricted to public posts at the API query level.
+		if (!session) params.set("visibility", "eq.public");
 		if (scope === "mine") {
 			params.set("user_id", `eq.${session.user.id}`);
 		}
