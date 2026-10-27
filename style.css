@@ -84,7 +84,7 @@ body[data-theme="dim"][data-accent="coral"] { --accent: #ff927e; --accent-soft: 
 	margin: 0 auto;
 	align-items: start;
 }
-.app-shell.signed-in { grid-template-columns: 172px minmax(410px, 1fr) 220px; }
+.app-shell.signed-in { grid-template-columns: 172px minmax(410px, 1fr) 220px 150px; }
 .sidebar { position: sticky; top: 52px; display: flex; max-height: calc(100vh - 52px); flex-direction: column; gap: 12px; overflow-y: auto; padding: 12px 0 18px; scrollbar-width: thin; }
 .sidebar > .brand { display: none; }
 .brand { display: inline-flex; width: fit-content; align-items: center; gap: 10px; color: var(--ink); font-family: var(--display); font-size: 25px; font-weight: 800; text-decoration: none; }
