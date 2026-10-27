@@ -23,6 +23,13 @@
 				<button class="icon-button" type="button" data-view="explore" aria-label="Explore">⌕</button>
 				<button class="icon-button" type="button" data-coming-soon aria-label="Marketplace">▤</button>
 			</nav>
+\t\t\t<div class="notification-menu-container">
+\t\t\t\t<button class="header-notifications" id="notifications-button" type="button" aria-haspopup="menu" aria-expanded="false" aria-controls="notifications-dropdown"><span class="bell" aria-hidden="true">🔔</span><span id="notifications-count" class="notification-badge" hidden>0</span></button>
+\t\t\t\t<div class="notifications-dropdown" id="notifications-dropdown" role="menu" aria-label="Notifications" hidden>
+\t\t\t\t\t<div class="notifications-header"><p class="notifications-title">Notifications</p><button class="notifications-mark-all" id="mark-all-notifications-read" type="button">Mark all as read</button></div>
+\t\t\t\t\t<div id="notifications-list" class="notifications-list"></div>
+\t\t\t\t</div>
+\t\t\t</div>
 			<div class="account-menu-container">
 				<button class="header-account" id="account-button" type="button" aria-haspopup="menu" aria-expanded="false" aria-controls="account-dropdown"><img class="avatar" src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&q=80" alt=""><span id="account-label">Sign in</span><span class="chevron" aria-hidden="true">⌄</span></button>
 				<div class="account-dropdown" id="account-dropdown" role="menu" aria-label="Account menu" hidden>
@@ -44,6 +51,7 @@
 				<button class="nav-button" type="button" data-view="my-posts"><span class="nav-icon" aria-hidden="true">▤</span><span>My posts</span></button>
 				<button class="nav-button" type="button" data-view="my-profile"><span class="nav-icon" aria-hidden="true">◉</span><span>My profile</span></button>
 				<button class="nav-button" type="button" data-view="messages"><span class="nav-icon" aria-hidden="true">✉</span><span>Messages</span></button>
+				<button class="nav-button" type="button" data-view="notifications"><span class="nav-icon" aria-hidden="true">🔔</span><span>Notifications</span></button>
 				<button class="nav-button" type="button" data-view="explore"><span class="nav-icon" aria-hidden="true">⌕</span><span>Explore</span></button>
 				<button class="nav-button" type="button" data-scroll-to="contacts-panel"><span class="nav-icon" aria-hidden="true">♧</span><span>Friends</span></button>
 				<button class="nav-button" type="button" data-scroll-to="groups-panel"><span class="nav-icon" aria-hidden="true">♧</span><span>Groups</span></button>
@@ -142,6 +150,12 @@
 				<p class="account-note" id="account-email-note">Your email is managed by your sign-in provider.</p>
 				<form id="account-handle-form"><label class="dialog-field">Handle<input id="account-handle" type="text" maxlength="24" autocomplete="username" pattern="[A-Za-z0-9_]+" required></label><p class="account-note">Use 2–24 letters, numbers, or underscores. Your handle is visible on your profile.</p><button class="dialog-primary" id="account-handle-save" type="submit">Save handle</button></form>
 			</section>
+\t\t\t<section class="notifications-page settings-panel" id="notifications-page" hidden aria-labelledby="notifications-page-heading">
+\t\t\t\t<h2 id="notifications-page-heading">Notifications</h2>
+\t\t\t\t<p class="notifications-intro">Stay updated on what's happening in your circle.</p>
+\t\t\t\t<div class="notifications-list" id="notifications-list"></div>
+\t\t\t\t<div class="notifications-actions"><button class="notifications-mark-all" id="mark-all-notifications-read" type="button">Mark all as read</button></div>
+\t\t\t</section>
 
 			<section class="public-profile-page" id="public-profile-page" hidden aria-labelledby="public-profile-name">
 				<button class="text-link profile-page-back" id="profile-page-back" type="button">Back to feed</button>
@@ -150,6 +164,16 @@
 					<div class="public-profile-header"><div class="profile-avatar-frame public-profile-frame" id="public-profile-frame" data-border="none" data-sticker="none"><img class="avatar public-profile-avatar" id="public-profile-avatar" alt=""><span class="profile-sticker" id="public-profile-sticker" aria-hidden="true" hidden></span></div><div><p class="dialog-eyebrow">UNISON MEMBER</p><h2 id="public-profile-name">Member profile</h2><p class="profile-handle" id="public-profile-handle"></p></div></div>
 					<p class="public-profile-bio" id="public-profile-bio"></p>
 					<div class="profile-page-actions"><button class="follow profile-follow" id="public-profile-follow" type="button" hidden>Follow</button><button class="dialog-primary profile-message" id="public-profile-message" type="button" hidden>Message</button></div>
+						<!-- 11. Notifications Page -->
+						<div class="notifications-page">
+							<h2 class="notifications-page-title">Notifications</h2>
+							<div class="notifications-list" id="notifications-list">
+								</div>
+							<button class="notifications-mark-all" id="mark-all-notifications-read" type="button">Mark all as read</button>
+						</div>
+						</div>
+						</div>
+
 					<h3 class="profile-posts-heading">Posts</h3>
 					<div class="profile-posts" id="public-profile-posts"></div>
 				</div>
@@ -254,6 +278,7 @@
 		<button class="nav-button" type="button" data-view="my-posts" aria-label="My posts"><span class="nav-icon" aria-hidden="true">▤</span><span class="nav-label">My posts</span></button>
 		<button class="nav-button" type="button" data-view="my-profile" aria-label="My profile"><span class="nav-icon" aria-hidden="true">◉</span><span class="nav-label">Profile</span></button>
 		<button class="nav-button" type="button" data-view="messages" aria-label="Messages"><span class="nav-icon" aria-hidden="true">✉</span><span class="nav-label">Messages</span></button>
+		<button class="nav-button" type="button" data-view="notifications" aria-label="Notifications"><span class="nav-icon" aria-hidden="true">🔔</span><span class="nav-label">Notifications</span></button>
 		<button class="nav-button" type="button" data-view="townsquare" aria-label="Townsquare"><span class="nav-icon" aria-hidden="true">⌖</span><span class="nav-label">Town</span></button>
 		<button class="nav-button" type="button" data-view="explore" aria-label="Explore"><span class="nav-icon" aria-hidden="true">⌕</span><span class="nav-label">Explore</span></button>
 		<button class="nav-button" type="button" data-focus-composer aria-label="Write a post"><span class="nav-icon" aria-hidden="true">＋</span><span class="nav-label">Post</span></button>
