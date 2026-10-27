@@ -462,6 +462,13 @@ h1 { margin-bottom: 3px; font-family: var(--display); font-size: 20px; font-weig
 .public-profile-page .profile-post-card:last-child { border-bottom: 0; }
 .profile-post-card p { margin: 0; font-size: 11px; line-height: 1.5; white-space: pre-wrap; overflow-wrap: anywhere; }
 .profile-post-card img { display: block; width: 100%; max-height: 240px; margin-top: 8px; border-radius: 5px; object-fit: cover; }
+.profile-post-actions { display: flex; gap: 12px; margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--line); }
+.profile-post-action { display: inline-flex; align-items: center; gap: 5px; padding: 0; border: 0; background: transparent; color: var(--muted); font-size: 10px; cursor: pointer; }
+.profile-post-action:hover { color: var(--ink); }
+.profile-post-action.liked { color: var(--accent); }
+.profile-post-action .action-icon { font-size: 12px; }
+.profile-post-action.profile-post-delete { color: #c84d3a; }
+.profile-post-action.profile-post-delete:hover { color: #b33c2c; }
 .mobile-nav { display: none; }
 body.signed-in .story[data-demo-story], body.signed-in [data-demo-person], body.signed-in [data-demo-content] { display: none; }
 body.signed-out [data-view="messages"] { display: none; }

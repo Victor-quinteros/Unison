@@ -639,6 +639,8 @@
 			posts.replaceChildren(...profilePosts.map((post) => {
 				const card = document.createElement("article");
 				card.className = "profile-post-card";
+				card.dataset.postId = post.id || "";
+				card.dataset.userId = post.userId || "";
 				const copy = document.createElement("p");
 				copy.textContent = post.text || "";
 				card.append(copy);
@@ -649,6 +651,30 @@
 					image.loading = "lazy";
 					card.append(image);
 				}
+				const actions = document.createElement("div");
+				actions.className = "profile-post-actions";
+				const like = document.createElement("button");
+				like.type = "button";
+				like.className = "profile-post-action";
+				like.dataset.action = "like";
+				like.setAttribute("aria-pressed", String(Boolean(post.liked)));
+				like.innerHTML = `<span class="action-icon">${post.liked ? "♥" : "♡"}</span><span data-count>${post.likes || 0}</span>`;
+				const share = document.createElement("button");
+				share.type = "button";
+				share.className = "profile-post-action";
+				share.dataset.action = "share";
+				share.innerHTML = "<span>↗</span><span>Share</span>";
+				actions.append(like, share);
+				const currentUser = window.UnisonAuth.getUser();
+				if (currentUser && post.userId === currentUser.id) {
+					const del = document.createElement("button");
+					del.type = "button";
+					del.className = "profile-post-action profile-post-delete";
+					del.dataset.action = "delete";
+					del.innerHTML = "<span>🗑</span><span>Delete</span>";
+					actions.append(del);
+				}
+				card.append(actions);
 				return card;
 			}));
 		} catch (error) {
@@ -1703,6 +1729,62 @@
 			feed.querySelectorAll('.post-menu[data-action="menu"]').forEach((item) => item.setAttribute("aria-expanded", "false"));
 			menu.hidden = expanded;
 			button.setAttribute("aria-expanded", String(!expanded));
+		}
+	});
+
+	document.querySelector("#public-profile-posts").addEventListener("click", async (event) => {
+		const profileLink = event.target.closest("[data-profile-link]");
+		if (profileLink) {
+			await openPublicProfile(profileLink.dataset.profileId, profileLink.dataset.profileHandle);
+			return;
+		}
+		const button = event.target.closest("button[data-action]");
+		if (!button) return;
+		const card = button.closest(".profile-post-card");
+		if (!card) return;
+		const postId = card.dataset.postId;
+		const userId = card.dataset.userId;
+		const currentUser = window.UnisonAuth.getUser();
+		if (button.dataset.action === "like") {
+			const liked = button.getAttribute("aria-pressed") === "true";
+			if (window.UnisonApi.isConfigured()) {
+				if (!requireSignedIn()) return;
+				if (!postId) return showToast("This post is not on your Supabase backend.");
+				try {
+					await window.UnisonApi.likePost(postId, !liked);
+				} catch (error) {
+					return showToast(error.message);
+				}
+				await createActivityNotification({ recipientId: userId, type: "like", entityType: "post", entityId: postId });
+			}
+			button.setAttribute("aria-pressed", String(!liked));
+			button.classList.toggle("liked", !liked);
+			const icon = button.querySelector(".action-icon");
+			if (icon) icon.textContent = liked ? "♡" : "♥";
+			const count = button.querySelector("[data-count]");
+			if (count) count.textContent = String(Math.max(0, Number(count.textContent || 0) + (liked ? -1 : 1)));
+		} else if (button.dataset.action === "share") {
+			try {
+				await navigator.clipboard.writeText(window.location.href);
+				showToast("Page link copied");
+			} catch {
+				showToast("Copy the page address to share this post.");
+			}
+		} else if (button.dataset.action === "delete") {
+			if (!currentUser || userId !== currentUser.id) return showToast("You can only delete your own posts.");
+			if (!postId || !window.UnisonApi.isConfigured()) return showToast("Only your saved posts can be deleted.");
+			if (!window.confirm("Delete this post? This cannot be undone.")) return;
+			button.disabled = true;
+			try {
+				await window.UnisonApi.deletePost(postId);
+				card.remove();
+				showToast("Post deleted.");
+				await refreshNotifications();
+			} catch (error) {
+				showToast(error.message);
+			} finally {
+				button.disabled = false;
+			}
 		}
 	});
 
