@@ -18,8 +18,11 @@
 	const demoComments = new Map();
 	const photoInput = document.querySelector("#photo-input");
 	const storyInput = document.querySelector("#story-input");
+	const authDialog = document.querySelector("#auth-dialog");
+	const storyDialog = document.querySelector("#story-dialog");
 	const groupDialog = document.querySelector("#group-dialog");
 	const groupForm = document.querySelector("#group-form");
+	const commentsDialog = document.querySelector("#comments-dialog");
 	const publicProfilePage = document.querySelector("#public-profile-page");
 	const messagesPage = document.querySelector("#messages-page");
 	const messageForm = document.querySelector("#message-form");
@@ -2057,9 +2060,6 @@
 			document.querySelectorAll("[data-theme-choice]").forEach((item) => item.setAttribute("aria-pressed", String(item === button)));
 			saveAppearance();
 		});
-	});
-	document.querySelectorAll("[data-accent-choice]").forEach((button) => {
-		button.setAttribute("aria-pressed", String(button.dataset.accentChoice === appearance.accent));
 	});
 	const compact = document.querySelector("#compact-mode");
 	compact.checked = appearance.compact;
