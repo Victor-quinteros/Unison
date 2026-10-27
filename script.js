@@ -1,4 +1,4 @@
-	// 01. Application state
+// 01. Application state
 	const form = document.querySelector("#post-form");
 	const input = document.querySelector("#post-text");
 	const feed = document.querySelector("#feed");
@@ -871,12 +871,10 @@
 			renderFeed();
 			return;
 		}
-		if (!window.UnisonAuth.getUser() && currentView !== "community") {
-			feedPosts = [...window.UnisonData.posts];
-			renderFeed();
-			return;
-		}
-		const scope = currentView === "townsquare" ? "townsquare" : currentView === "community" ? "community" : currentView === "saved" ? "saved" : currentFeed === "following" ? "following" : currentFeed === "mine" ? "mine" : "home";
+		const signedIn = Boolean(window.UnisonAuth.getUser());
+		// Guests should see real public Community posts, not only the hard-coded demo feed.
+		// Private/member-only feed filters remain available only after sign-in.
+		const scope = !signedIn ? "community" : currentView === "townsquare" ? "townsquare" : currentView === "community" ? "community" : currentView === "saved" ? "saved" : currentFeed === "following" ? "following" : currentFeed === "mine" ? "mine" : "home";
 		const results = await window.UnisonApi.listPosts({ scope, search: currentView === "search" ? "" : search.value.trim() });
 		if (requestId !== feedRequestId) return;
 		feedPosts = results;
@@ -1085,40 +1083,8 @@
 			refreshNotifications().catch((error) => showToast(error.message));
 			return;
 		}
-		if (!window.UnisonAuth.getUser() && view === "explore") {
-			authGate.hidden = false;
-			feed.replaceChildren();
-			emptyState.style.display = "none";
-			document.querySelector("#home").classList.toggle("search-mode", false);
-			document.querySelector("#home").classList.toggle("profile-mode", false);
-			document.querySelector("#home").classList.toggle("messages-mode", false);
-			document.querySelector("#home").classList.toggle("settings-mode", false);
-			document.querySelector("#home").classList.toggle("account-mode", false);
-			document.querySelector("#home").classList.toggle("public-profile-mode", false);
-			document.querySelector("#my-profile-page").hidden = true;
-			publicProfilePage.hidden = true;
-			accountPage.hidden = true;
-			messagesPage.hidden = true;
-			settingsPage.hidden = true;
-			document.querySelector("#notifications-page").hidden = true;
-			townSquareIntro.hidden = true;
-			const exploreIntro = document.querySelector("#explore-intro");
-			if (exploreIntro) exploreIntro.hidden = false;
-			feedControls.hidden = true;
-			document.querySelectorAll("[data-view]").forEach((button) => button.classList.toggle("active", button.dataset.view === view));
-			return;
-		}
-		if (!window.UnisonAuth.getUser() && (view === "home" || view === "community")) {
-				refreshSupabaseFeed().catch(() => {
-					feedPosts = view === "home" ? [...window.UnisonData.posts] : [];
-					renderFeed();
-					applyFilters();
-				});
-			} else {
-				feedPosts = view === "home" ? [...window.UnisonData.posts] : [];
-				renderFeed();
-				applyFilters();
-			}
+		if (!window.UnisonAuth.getUser() && ["home", "community", "explore", "townsquare"].includes(view)) {
+			refreshSupabaseFeed().catch((error) => showToast(error.message));
 			return;
 		}
 		refreshSupabaseFeed().catch((error) => showToast(error.message));
