@@ -185,6 +185,7 @@ async function mapPost(row) {
 		replies: comments.length,
 		liked: Boolean(supabaseSession && likes.some((like) => like.user_id === supabaseSession.user.id)),
 		saved: Boolean(supabaseSession && savedPosts.some((saved) => saved.user_id === supabaseSession.user.id)),
+		createdAt: row.created_at,
 		local: row.scope === "townsquare",
 		community: row.scope === "community",
 		localType: row.scope === "townsquare" ? "Neighborhood post" : row.scope === "community" ? "Community post" : ""

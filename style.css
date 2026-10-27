@@ -469,10 +469,10 @@ h1 { margin-bottom: 3px; font-family: var(--display); font-size: 20px; font-weig
 .profile-post-action .action-icon { font-size: 12px; }
 .profile-post-action.profile-post-delete { color: #c84d3a; }
 .profile-post-action.profile-post-delete:hover { color: #b33c2c; }
+.profile-post-time { margin-top: 6px; font-size: 9px; color: var(--muted); }
 .mobile-nav { display: none; }
 body.signed-in .story[data-demo-story], body.signed-in [data-demo-person], body.signed-in [data-demo-content] { display: none; }
 body.signed-out [data-view="messages"] { display: none; }
-body.signed-in .contact-rail { display: none; }
 body.signed-in .right-rail > :not(#people-panel) { display: none; }
 body.compact .post { padding: 10px 14px; }
 body.compact .post-copy { margin: 8px 0; }

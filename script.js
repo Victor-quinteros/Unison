@@ -193,6 +193,21 @@
 		return date.toLocaleDateString(undefined, { month: "short", day: "numeric" });
 	}
 
+	function formatProfilePostTime(createdAt) {
+		if (!createdAt) return "";
+		const date = new Date(createdAt);
+		const now = new Date();
+		const diffMs = now - date;
+		const diffHours = diffMs / (1000 * 60 * 60);
+		if (diffHours < 24) {
+			const diffMins = Math.floor(diffMs / (1000 * 60));
+			if (diffMins < 1) return "just now";
+			if (diffMins < 60) return `${diffMins}m ago`;
+			return `${Math.floor(diffHours)}h ago`;
+		}
+		return date.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" }) + " · " + date.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
+	}
+
 	function notificationText(notification) {
 		const sender = notification.sender ? notification.sender.name : "Someone";
 		switch (notification.type) {
@@ -474,6 +489,45 @@
 		await refreshFollowState();
 	}
 
+	async function refreshFriends() {
+		if (!window.UnisonApi.isConfigured() || !window.UnisonAuth.getUser()) return;
+		const list = document.querySelector("#contact-list");
+		list.replaceChildren();
+		const followedIds = new Set(await window.UnisonApi.listFollowedIds());
+		const people = await window.UnisonApi.listPeople();
+		const friends = people.filter((person) => followedIds.has(person.id));
+		if (!friends.length) {
+			const empty = document.createElement("p");
+			empty.className = "profile-posts-empty";
+			empty.textContent = "No friends yet. Follow people to see them here.";
+			list.append(empty);
+			return;
+		}
+		friends.forEach((person) => {
+			const row = document.createElement("div");
+			row.className = "contact";
+			row.dataset.profileId = person.id;
+			const avatar = document.createElement("img");
+			avatar.className = "avatar";
+			avatar.src = person.avatar_url || fallbackAvatar;
+			avatar.alt = "";
+			const name = document.createElement("span");
+			name.className = "contact-name";
+			name.textContent = person.display_name || person.handle;
+			const online = document.createElement("span");
+			online.className = "online-dot";
+			online.setAttribute("aria-label", "Online");
+			const follow = document.createElement("button");
+			follow.className = "follow";
+			follow.type = "button";
+			follow.dataset.followId = person.id;
+			follow.setAttribute("aria-pressed", "true");
+			follow.textContent = "Following";
+			row.append(avatar, name, online, follow);
+			list.append(row);
+		});
+	}
+
 	async function refreshSearchPeople(query) {
 		const requestId = ++searchPeopleRequestId;
 		const section = document.querySelector("#search-people-section");
@@ -651,6 +705,11 @@
 					image.loading = "lazy";
 					card.append(image);
 				}
+				const timeEl = document.createElement("time");
+				timeEl.className = "profile-post-time";
+				timeEl.dateTime = post.createdAt || "";
+				timeEl.textContent = post.createdAt ? formatProfilePostTime(post.createdAt) : (post.time ? `· ${post.time}` : "");
+				card.append(timeEl);
 				const actions = document.createElement("div");
 				actions.className = "profile-post-actions";
 				const like = document.createElement("button");
@@ -853,6 +912,7 @@
 		if (restoredUser) {
 			refreshStories().catch((error) => showToast(error.message));
 			refreshPeople().catch((error) => showToast(error.message));
+			refreshFriends().catch((error) => showToast(error.message));
 			refreshSupabaseFeed().catch((error) => showToast(error.message));
 			loadMyProfile().catch((error) => showToast(profileErrorMessage(error)));
 			refreshGroupMemberships().catch((error) => showToast(error.message));
@@ -1188,7 +1248,7 @@
 					? `Profile saved. ${sharedCount} uploaded photo${sharedCount === 1 ? " was" : "s were"} shared to Home.`
 					: "Your profile is saved.";
 			showToast(shareError ? "Profile saved, but a photo could not be shared to Home." : sharedCount ? "Profile saved and shared to Home." : "Profile saved.");
-			Promise.allSettled([refreshSupabaseFeed(), refreshPeople(), refreshStories()]).then((refreshResults) => {
+			Promise.allSettled([refreshSupabaseFeed(), refreshPeople(), refreshFriends(), refreshStories()]).then((refreshResults) => {
 				if (refreshResults.some((result) => result.status === "rejected")) showToast("Profile saved. Some profile pictures or posts may take a moment to refresh.");
 			});
 		} catch (error) {
@@ -1249,7 +1309,7 @@
 			updateAccount(window.UnisonAuth.getUser(), null);
 			authDialog.close();
 			showToast("You are signed in.");
-			Promise.allSettled([loadMyProfile(), refreshSupabaseFeed(), refreshGroupMemberships(), refreshStories(), refreshPeople(), refreshNotifications()]).then((results) => {
+			Promise.allSettled([loadMyProfile(), refreshSupabaseFeed(), refreshGroupMemberships(), refreshStories(), refreshPeople(), refreshFriends(), refreshNotifications()]).then((results) => {
 				if (results.some((result) => result.status === "rejected")) showToast("You are signed in, but some profile or feed data could not load.");
 			});
 		} catch (error) {
@@ -1341,6 +1401,22 @@
 		document.querySelectorAll(".contact-list .contact").forEach((contact) => {
 			contact.hidden = !contact.textContent.toLowerCase().includes(query);
 		});
+	});
+	document.querySelector("#contact-list").addEventListener("click", async (event) => {
+		const button = event.target.closest("button.follow");
+		if (!button) return;
+		const isFollowing = button.getAttribute("aria-pressed") === "true";
+		if (window.UnisonApi.isConfigured() && !requireSignedIn()) return;
+		try {
+			if (window.UnisonApi.isConfigured()) await window.UnisonApi.toggleFollow(button.dataset.followId, !isFollowing);
+			else if (isFollowing) following.delete(button.dataset.followId);
+			else following.add(button.dataset.followId);
+			button.setAttribute("aria-pressed", String(!isFollowing));
+			button.textContent = !isFollowing ? "Following" : "Follow";
+			await refreshFriends();
+		} catch (error) {
+			showToast(error.message);
+		}
 	});
 	document.querySelectorAll("[data-group-id]").forEach((button) => button.addEventListener("click", async () => {
 		const shouldJoin = button.getAttribute("aria-pressed") !== "true";
