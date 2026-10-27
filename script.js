@@ -46,6 +46,9 @@
 	let activeConversation = null;
 	let previousProfileReturnView = "home";
 	let previousProfileReturnScrollY = 0;
+	let notifications = [];
+	let unreadCount = 0;
+	let notificationsRequestId = 0;
 	const fallbackAvatar = "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&q=80";
 	const profileEditorAvatarPlaceholder = `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" rx="50" fill="#e8eef5"/><circle cx="50" cy="37" r="18" fill="#9aaabd"/><path d="M17 91c3-21 16-32 33-32s30 11 33 32" fill="#9aaabd"/></svg>')}`;
 	const profileStickerGlyphs = { star: "⭐", flower: "🌸", sparkle: "✨", fire: "🔥" };
@@ -172,6 +175,158 @@
 			renderMyProfilePreview();
 		}
 		return currentProfile;
+	}
+
+	// 02. Notification helpers
+	function relativeTime(timestamp) {
+		if (!timestamp) return "";
+		const date = new Date(timestamp);
+		const now = new Date();
+		const seconds = Math.floor((now - date) / 1000);
+		if (seconds < 60) return "just now";
+		const minutes = Math.floor(seconds / 60);
+		if (minutes < 60) return `${minutes}m`;
+		const hours = Math.floor(minutes / 60);
+		if (hours < 24) return `${hours}h`;
+		const days = Math.floor(hours / 24);
+		if (days < 7) return `${days}d`;
+		return date.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+	}
+
+	function notificationText(notification) {
+		const sender = notification.sender ? notification.sender.name : "Someone";
+		switch (notification.type) {
+			case "like": return `${sender} liked your ${notification.entityType}`;
+			case "comment": return `${sender} commented on your ${notification.entityType}`;
+			case "follow": return `${sender} followed you`;
+			case "mention": return `${sender} mentioned you in a ${notification.entityType}`;
+			default: return `${sender} interacted with your ${notification.entityType}`;
+		}
+	}
+
+	function createNotificationElement(notification) {
+		const item = document.createElement("article");
+		item.className = `notification-item${notification.read ? "" : " unread"}`;
+		item.dataset.notificationId = notification.id;
+		const avatar = document.createElement("img");
+		avatar.className = "notification-avatar";
+		avatar.src = (notification.sender && notification.sender.avatar) || fallbackAvatar;
+		avatar.alt = "";
+		const content = document.createElement("div");
+		content.className = "notification-content";
+		const text = document.createElement("p");
+		text.className = "notification-text";
+		text.textContent = notificationText(notification);
+		const time = document.createElement("div");
+		time.className = "notification-time";
+		time.textContent = relativeTime(notification.createdAt);
+		content.append(text, time);
+		const del = document.createElement("button");
+		del.className = "notification-delete";
+		del.type = "button";
+		del.dataset.deleteNotification = notification.id;
+		del.textContent = "×";
+		del.setAttribute("aria-label", "Delete notification");
+		item.append(avatar, content, del);
+		return item;
+	}
+
+	function renderNotifications(listElement, items) {
+		listElement.replaceChildren();
+		if (!items.length) {
+			const empty = document.createElement("p");
+			empty.className = "notifications-empty";
+			empty.textContent = "No notifications yet.";
+			listElement.append(empty);
+			return;
+		}
+		listElement.replaceChildren(...items.map(createNotificationElement));
+	}
+
+	async function refreshNotifications() {
+		if (!window.UnisonApi.isConfigured() || !window.UnisonAuth.getUser()) return;
+		const requestId = ++notificationsRequestId;
+		try {
+			const list = await window.UnisonApi.listNotifications();
+			if (requestId !== notificationsRequestId) return;
+			notifications = list;
+			unreadCount = list.filter((n) => !n.read).length;
+			const dropdownList = document.querySelector("#notifications-dropdown .notifications-list");
+			const pageList = document.querySelector("#notifications-page .notifications-list");
+			if (dropdownList) renderNotifications(dropdownList, notifications.slice(0, 20));
+			if (pageList) renderNotifications(pageList, notifications);
+			updateUnreadBadge();
+		} catch (error) {
+			showToast(error.message);
+		}
+	}
+
+	function updateUnreadBadge() {
+		const badge = document.querySelector("#notifications-count");
+		if (!badge) return;
+		if (unreadCount > 0) {
+			badge.textContent = String(unreadCount);
+			badge.hidden = false;
+		} else {
+			badge.hidden = true;
+		}
+	}
+
+	async function markNotificationRead(notificationId) {
+		if (!requireSignedIn()) return;
+		try {
+			await window.UnisonApi.markNotificationRead(notificationId);
+			const notification = notifications.find((n) => n.id === notificationId);
+			if (notification) {
+				notification.read = true;
+				unreadCount = Math.max(0, unreadCount - 1);
+				updateUnreadBadge();
+				document.querySelectorAll(`[data-notification-id="${notificationId}"]`).forEach((item) => item.classList.remove("unread"));
+			}
+		} catch (error) {
+			showToast(error.message);
+		}
+	}
+
+	async function markAllNotificationsRead() {
+		if (!requireSignedIn()) return;
+		try {
+			await window.UnisonApi.markAllNotificationsRead();
+			notifications.forEach((n) => { n.read = true; });
+			unreadCount = 0;
+			updateUnreadBadge();
+			document.querySelectorAll(".notification-item").forEach((item) => item.classList.remove("unread"));
+			showToast("All notifications marked as read.");
+		} catch (error) {
+			showToast(error.message);
+		}
+	}
+
+	async function deleteNotification(notificationId) {
+		if (!requireSignedIn()) return;
+		try {
+			await window.UnisonApi.deleteNotification(notificationId);
+			notifications = notifications.filter((n) => n.id !== notificationId);
+			unreadCount = notifications.filter((n) => !n.read).length;
+			updateUnreadBadge();
+			const dropdownList = document.querySelector("#notifications-dropdown .notifications-list");
+			const pageList = document.querySelector("#notifications-page .notifications-list");
+			if (dropdownList) renderNotifications(dropdownList, notifications.slice(0, 20));
+			if (pageList) renderNotifications(pageList, notifications);
+		} catch (error) {
+			showToast(error.message);
+		}
+	}
+
+	async function createActivityNotification({ recipientId, type, entityType, entityId }) {
+		if (!window.UnisonApi.isConfigured()) return;
+		const user = window.UnisonAuth.getUser();
+		if (!user || recipientId === user.id) return;
+		try {
+			await window.UnisonApi.createNotification({ senderId: user.id, recipientId, type, entityType, entityId });
+		} catch {
+			// Notification creation should never break the main action.
+		}
 	}
 
 	// 02. Feed rendering and filtering
@@ -674,6 +829,7 @@
 			refreshSupabaseFeed().catch((error) => showToast(error.message));
 			loadMyProfile().catch((error) => showToast(profileErrorMessage(error)));
 			refreshGroupMemberships().catch((error) => showToast(error.message));
+			refreshNotifications().catch((error) => showToast(error.message));
 		}
 	}
 
@@ -708,7 +864,7 @@
 		currentView = view;
 		currentFeed = view === "my-posts" ? "mine" : "all";
 		persistActiveView();
-		viewTitle.textContent = view === "public-profile" ? "Member profile" : view === "account" ? "My account" : view === "settings" ? "Settings" : view === "messages" ? "Messages" : view === "search" ? "Search results" : view === "my-profile" ? "My Profile" : view === "my-posts" ? "My posts" : view === "saved" ? "Saved" : view === "explore" ? "Explore" : view === "townsquare" ? "Townsquare" : view === "community" ? "Community feed" : "Home";
+		viewTitle.textContent = view === "public-profile" ? "Member profile" : view === "account" ? "My account" : view === "settings" ? "Settings" : view === "messages" ? "Messages" : view === "search" ? "Search results" : view === "my-profile" ? "My Profile" : view === "my-posts" ? "My posts" : view === "saved" ? "Saved" : view === "explore" ? "Explore" : view === "townsquare" ? "Townsquare" : view === "community" ? "Community feed" : view === "notifications" ? "Notifications" : "Home";
 		if (!window.UnisonAuth.getUser()) {
 			if (view === "community") pageSubtitle.textContent = "Public community posts are visible to everyone.";
 			authGate.querySelector("h2").textContent = view === "community" ? "Public community feed" : "Take a look around";
@@ -719,7 +875,8 @@
 		if (view === "public-profile") pageSubtitle.textContent = "Profile, background, and posts.";
 		if (view === "settings") pageSubtitle.textContent = "Personalize how Unison looks.";
 		if (view === "account") pageSubtitle.textContent = "Manage your sign-in email and handle.";
-		document.querySelector("#today-label").textContent = view === "settings" ? "MAKE UNISON YOURS" : view === "search" ? "SEARCH YOUR CIRCLE" : view === "my-profile" ? "YOUR PUBLIC PROFILE" : view === "community" ? "SHARED WITH THE COMMUNITY" : "YOUR PEOPLE, YOUR PACE";
+		if (view === "notifications") pageSubtitle.textContent = "Activity from people in your circle.";
+		document.querySelector("#today-label").textContent = view === "settings" ? "MAKE UNISON YOURS" : view === "search" ? "SEARCH YOUR CIRCLE" : view === "my-profile" ? "YOUR PUBLIC PROFILE" : view === "community" ? "SHARED WITH THE COMMUNITY" : view === "notifications" ? "YOUR ACTIVITY" : "YOUR PEOPLE, YOUR PACE";
 		if (view === "community") pageSubtitle.textContent = "Public community posts are visible to everyone.";
 		document.querySelector("#home").classList.toggle("search-mode", view === "search");
 		document.querySelector("#home").classList.toggle("profile-mode", view === "my-profile");
@@ -732,6 +889,7 @@
 		accountPage.hidden = view !== "account";
 		messagesPage.hidden = view !== "messages";
 		settingsPage.hidden = view !== "settings";
+		document.querySelector("#notifications-page").hidden = view !== "notifications";
 		if (view === "account") {
 			const user = window.UnisonAuth.getUser();
 			document.querySelector("#account-email").value = user?.email || "";
@@ -741,7 +899,7 @@
 			}).catch((error) => showToast(error.message));
 		}
 		townSquareIntro.hidden = view !== "townsquare";
-		feedControls.hidden = view === "townsquare" || view === "community" || view === "search" || view === "my-profile" || view === "messages" || view === "settings" || view === "account" || view === "public-profile";
+		feedControls.hidden = view === "townsquare" || view === "community" || view === "search" || view === "my-profile" || view === "messages" || view === "settings" || view === "account" || view === "public-profile" || view === "notifications";
 		input.placeholder = view === "townsquare" ? "Share something happening nearby..." : view === "community" ? "Share with the community..." : "What's on your mind, Alex?";
 		postScope.value = view === "community" ? "community" : "home";
 		document.querySelector("#post-destination").hidden = view === "townsquare" || view === "community";
@@ -771,6 +929,10 @@
 			return;
 		}
 		if (view === "settings" || view === "account" || view === "public-profile") return;
+		if (view === "notifications") {
+			refreshNotifications().catch((error) => showToast(error.message));
+			return;
+		}
 		refreshSupabaseFeed().catch((error) => showToast(error.message));
 	}
 
@@ -803,7 +965,7 @@
 		if (location.hash.startsWith("#search/")) return;
 		let saved;
 		try { saved = JSON.parse(window.sessionStorage.getItem("unison.active-view") || "null"); } catch { saved = null; }
-		const allowedViews = new Set(["home", "community", "my-posts", "my-profile", "messages", "explore", "townsquare", "saved", "settings", "account", "public-profile", "search"]);
+		const allowedViews = new Set(["home", "community", "my-posts", "my-profile", "messages", "explore", "townsquare", "saved", "settings", "account", "public-profile", "notifications", "search"]);
 		if (!allowedViews.has(saved?.view)) return;
 		if (!window.UnisonAuth.getUser() && !["home", "community", "public-profile"].includes(saved.view)) {
 			try { window.sessionStorage.removeItem("unison.active-view"); } catch { /* Ignore storage restrictions. */ }
@@ -1060,7 +1222,7 @@
 			updateAccount(window.UnisonAuth.getUser(), null);
 			authDialog.close();
 			showToast("You are signed in.");
-			Promise.allSettled([loadMyProfile(), refreshSupabaseFeed(), refreshGroupMemberships(), refreshStories(), refreshPeople()]).then((results) => {
+			Promise.allSettled([loadMyProfile(), refreshSupabaseFeed(), refreshGroupMemberships(), refreshStories(), refreshPeople(), refreshNotifications()]).then((results) => {
 				if (results.some((result) => result.status === "rejected")) showToast("You are signed in, but some profile or feed data could not load.");
 			});
 		} catch (error) {
@@ -1179,6 +1341,49 @@
 		window.scrollTo({ top: 0, behavior: "smooth" });
 	});
 	document.querySelectorAll("[data-view]").forEach((button) => button.addEventListener("click", () => setView(button.dataset.view)));
+	document.querySelector("#notifications-button").addEventListener("click", async () => {
+		const dropdown = document.querySelector("#notifications-dropdown");
+		const isOpen = !dropdown.hidden;
+		closeAccountDropdown();
+		if (isOpen) {
+			dropdown.hidden = true;
+			document.querySelector("#notifications-button").setAttribute("aria-expanded", "false");
+			return;
+		}
+		if (!window.UnisonAuth.getUser()) return openAuthDialog("Sign in to view notifications.");
+		dropdown.hidden = false;
+		document.querySelector("#notifications-button").setAttribute("aria-expanded", "true");
+		await refreshNotifications();
+	});
+	document.addEventListener("click", (event) => {
+		if (event.target.closest("#notifications-button")) return;
+		const dropdown = document.querySelector("#notifications-dropdown");
+		if (!dropdown.hidden) { dropdown.hidden = true; document.querySelector("#notifications-button").setAttribute("aria-expanded", "false"); }
+	});
+	document.querySelector("#mark-all-notifications-read").addEventListener("click", async (event) => {
+		event.stopPropagation();
+		await markAllNotificationsRead();
+		document.querySelector("#notifications-dropdown").hidden = true;
+		document.querySelector("#notifications-button").setAttribute("aria-expanded", "false");
+	});
+	document.querySelector("#notifications-page #mark-all-notifications-read").addEventListener("click", async () => {
+		await markAllNotificationsRead();
+		await refreshNotifications();
+	});
+	document.querySelector("#notifications-dropdown").addEventListener("click", async (event) => {
+		const deleteButton = event.target.closest("[data-delete-notification]");
+		if (deleteButton) {
+			event.stopPropagation();
+			await deleteNotification(deleteButton.dataset.deleteNotification);
+			return;
+		}
+		const item = event.target.closest(".notification-item");
+		if (item && !item.classList.contains("unread")) return;
+		if (item) {
+			event.stopPropagation();
+			await markNotificationRead(item.dataset.notificationId);
+		}
+	});
 	document.querySelectorAll("[data-filter]").forEach((button) => button.addEventListener("click", () => {
 		currentView = "home";
 		currentFeed = button.dataset.filter;
@@ -1222,6 +1427,7 @@
 			if (!button.dataset.followId) return showToast("Demo profiles are not in your Supabase project.");
 			try {
 				await window.UnisonApi.toggleFollow(button.dataset.followId, !isFollowing);
+				if (!isFollowing) await createActivityNotification({ recipientId: button.dataset.followId, type: "follow", entityType: "profile", entityId: button.dataset.followId });
 			} catch (error) {
 				return showToast(error.message);
 			}
@@ -1239,6 +1445,7 @@
 		const followingProfile = button.getAttribute("aria-pressed") === "true";
 		try {
 			await window.UnisonApi.toggleFollow(button.dataset.followId, !followingProfile);
+			if (!followingProfile) await createActivityNotification({ recipientId: button.dataset.followId, type: "follow", entityType: "profile", entityId: button.dataset.followId });
 			setFollowButton(button, !followingProfile);
 			await refreshPeople();
 		} catch (error) {
@@ -1450,6 +1657,7 @@
 				} catch (error) {
 					return showToast(error.message);
 				}
+				await createActivityNotification({ recipientId: postData.userId, type: "like", entityType: "post", entityId: post.dataset.postId });
 			}
 			if (postData) {
 				postData.liked = !liked;
@@ -1517,6 +1725,7 @@
 			if (window.UnisonApi.isConfigured()) {
 				if (!activeCommentPost.dataset.postId) return showToast("This sample post is not on your Supabase backend.");
 				await window.UnisonApi.createComment(activeCommentPost.dataset.postId, body);
+				await createActivityNotification({ recipientId: activeCommentPost.dataset.userId, type: "comment", entityType: "post", entityId: activeCommentPost.dataset.postId });
 				comments = await window.UnisonApi.listComments(activeCommentPost.dataset.postId);
 			} else {
 				comments = demoComments.get(key) || [];

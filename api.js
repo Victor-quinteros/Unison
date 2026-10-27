@@ -571,5 +571,71 @@ window.UnisonApi = Object.freeze({
 		});
 		await readResponse(response);
 		return `${supabaseUrl}/storage/v1/object/public/profile-media/${path}`;
+	},
+
+	// 10. Notifications
+	async listNotifications() {
+		await requireSession();
+		const params = new URLSearchParams({
+			select: "id,sender_id,type,entity_type,entity_id,read,created_at,sender:profiles!notifications_sender_id_fkey(id,handle,display_name,avatar_url)",
+			recipient_id: `eq.${supabaseSession.user.id}`,
+			order: "created_at.desc",
+			limit: "100"
+		});
+		const rows = await supabaseRequest(`notifications?${params}`, { auth: true });
+		return Promise.all(rows.map(async (row) => ({
+			id: row.id,
+			senderId: row.sender_id,
+			type: row.type,
+			entityType: row.entity_type,
+			entityId: row.entity_id,
+			read: row.read,
+			createdAt: row.created_at,
+			sender: row.sender ? {
+				id: row.sender.id,
+				handle: row.sender.handle ? `@${row.sender.handle}` : "@member",
+				name: row.sender.display_name || "Unison member",
+				avatar: await profileAvatarUrl(row.sender.avatar_url).catch(() => "")
+			} : null
+		})));
+	},
+	async createNotification({ senderId, recipientId, type, entityType, entityId }) {
+		const session = await requireSession();
+		const params = new URLSearchParams({ select: "id,sender_id,type,entity_type,entity_id,read,created_at,sender:profiles!notifications_sender_id_fkey(id,handle,display_name,avatar_url)" });
+		const rows = await supabaseRequest("notifications", {
+			method: "POST", auth: true,
+			headers: { Prefer: "return=representation" },
+			body: { sender_id: senderId, recipient_id: recipientId, type, entity_type: entityType, entity_id: entityId }
+		});
+		return rows[0];
+	},
+	async markNotificationRead(notificationId) {
+		const session = await requireSession();
+		const params = new URLSearchParams({ id: `eq.${notificationId}`, recipient_id: `eq.${session.user.id}` });
+		const rows = await supabaseRequest(`notifications?${params}`, {
+			method: "PATCH", auth: true,
+			headers: { Prefer: "return=representation" },
+			body: { read: true }
+		});
+		return rows[0];
+	},
+	async markAllNotificationsRead() {
+		const session = await requireSession();
+		const rows = await supabaseRequest(`notifications?recipient_id=eq.${session.user.id}&read=eq.false`, {
+			method: "PATCH", auth: true,
+			headers: { Prefer: "return=representation" },
+			body: { read: true }
+		});
+		return rows.length;
+	},
+	async deleteNotification(notificationId) {
+		const session = await requireSession();
+		return supabaseRequest(`notifications?id=eq.${notificationId}&recipient_id=eq.${session.user.id}`, { method: "DELETE", auth: true });
+	},
+	async countUnreadNotifications() {
+		await requireSession();
+		const params = new URLSearchParams({ recipient_id: `eq.${supabaseSession.user.id}`, read: "eq.false" });
+		const rows = await supabaseRequest(`notifications?select=id&${params}`, { auth: true });
+		return rows.length;
 	}
 });
