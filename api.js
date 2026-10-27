@@ -237,15 +237,20 @@ window.UnisonAuth = Object.freeze({
 // 03. Supabase data and storage endpoints
 window.UnisonApi = Object.freeze({
 	isConfigured: isSupabaseConfigured,
-	async listPosts({ scope = "home", search = "", profileUserId = "" } = {}) {
+	async listPosts({ scope = "home", search = "", profileUserId = "", groupId = "" } = {}) {
 		const session = supabaseSession ? await requireSession() : null;
-		if (!session && scope !== "community" && !(scope === "profile" && profileUserId)) {
+		if (!session && scope !== "community" && !(scope === "profile" && profileUserId) && scope !== "group") {
 			throw new Error("Sign in to view these posts.");
 		}
 		const params = new URLSearchParams({ select: postSelect(), order: "created_at.desc" });
 		if (scope === "townsquare") params.set("scope", "eq.townsquare");
 		if (scope === "community") params.set("scope", "eq.community");
 		if (scope === "home") params.set("scope", "in.(home,townsquare,community)");
+		if (scope === "group") {
+			if (!groupId) throw new Error("Group not specified.");
+			params.set("scope", "eq.group");
+			params.set("group_id", `eq.${groupId}`);
+		}
 		if (profileUserId) params.set("user_id", `eq.${profileUserId}`);
 		if (scope === "mine") {
 			params.set("user_id", `eq.${session.user.id}`);
@@ -266,18 +271,20 @@ window.UnisonApi = Object.freeze({
 		const rows = await supabaseRequest(`posts?${params}`, { auth: Boolean(session) });
 		return Promise.all(rows.map(mapPost));
 	},
-	async createPost({ text, scope = "home", visibility = "public", imageFile = null }) {
+	async createPost({ text, scope = "home", visibility = "public", imageFile = null, groupId = null }) {
 		const session = await requireSession();
 		const body = String(text || "").trim();
 		if (!body && !imageFile) throw new TypeError("Add text or a photo before posting.");
 		let imagePath = null;
 		if (imageFile) imagePath = await this.uploadPostImage(imageFile);
 		const params = new URLSearchParams({ select: postSelect() });
+		const postBody = { user_id: session.user.id, body: body || "", scope, visibility, image_path: imagePath };
+		if (scope === "group" && groupId) postBody.group_id = groupId;
 		const rows = await supabaseRequest(`posts?${params}`, {
 			method: "POST",
 			auth: true,
 			headers: { Prefer: "return=representation" },
-			body: { user_id: session.user.id, body: body || "", scope, visibility, image_path: imagePath }
+			body: postBody
 		});
 		return mapPost(rows[0]);
 	},
@@ -376,12 +383,38 @@ window.UnisonApi = Object.freeze({
 		const safeQuery = String(query || "").replace(/[(),%_*]/g, " ").trim();
 		if (!safeQuery) return [];
 		const params = new URLSearchParams({
-			select: "id,name,description",
+			select: "id,name,description,owner_id,image_path,created_at",
 			order: "name.asc",
 			limit: "12",
 			or: `(name.ilike.*${safeQuery}*,description.ilike.*${safeQuery}*)`
 		});
 		return supabaseRequest(`groups?${params}`);
+	},
+	async createGroup({ name, description = "", imagePath = null }) {
+		const session = await requireSession();
+		const groupName = String(name || "").trim();
+		if (!groupName) throw new TypeError("Group name is required.");
+		const groupId = groupName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+		if (!groupId) throw new TypeError("Invalid group name.");
+		const params = new URLSearchParams({ select: "id,name,description,owner_id,image_path,created_at" });
+		const rows = await supabaseRequest(`groups?${params}`, {
+			method: "POST", auth: true,
+			headers: { Prefer: "return=representation" },
+			body: { id: groupId, name: groupName, description: String(description || "").trim(), owner_id: session.user.id, image_path: imagePath }
+		});
+		await supabaseRequest("groups_memberships", {
+			method: "POST", auth: true,
+			headers: { Prefer: "resolution=ignore-duplicates" },
+			body: { group_id: groupId, user_id: session.user.id }
+		});
+		return rows[0];
+	},
+	async getGroup(groupId) {
+		const auth = Boolean(supabaseSession);
+		if (auth) await requireSession().catch(() => {});
+		const params = new URLSearchParams({ select: "id,name,description,owner_id,image_path,created_at", id: `eq.${groupId}`, limit: "1" });
+		const rows = await supabaseRequest(`groups?${params}`, { auth });
+		return rows[0] || null;
 	},
 	async getMyProfile() {
 		const session = await requireSession();

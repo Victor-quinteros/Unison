@@ -233,7 +233,7 @@
         <button class="trend" type="button" data-topic="weekendcooking"><span class="trend-type">3 · FOOD</span><span class="trend-name">#WeekendCooking</span><span class="trend-count">3.1K posts</span></button>
         <button class="trend" type="button" data-topic="Travel"><span class="trend-type">4 · TRAVEL</span><span class="trend-name">#Travel</span><span class="trend-count">15.6K posts</span></button>
       </div></section>
-      <section class="rail-panel" id="groups-panel"><h2 class="panel-title">Groups</h2><div class="suggestion-list">
+      <section class="rail-panel"><h2 class="panel-title">Groups <button class="text-link" type="button" id="create-group-btn">Create group</button></h2><div class="suggestion-list">
         <div class="suggestion"><img src="https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=90&q=75" alt=""><div class="suggestion-copy"><strong>Panama Travel & Life</strong><span>8.2K members</span></div><button class="join-button" type="button" data-group-id="panama-travel-life" aria-pressed="false">Join</button></div>
         <div class="suggestion"><img src="https://images.unsplash.com/photo-1503376780353-7e6692767b70?auto=format&fit=crop&w=90&q=75" alt=""><div class="suggestion-copy"><strong>Car Enthusiasts</strong><span>12.6K members</span></div><button class="join-button" type="button" data-group-id="car-enthusiasts" aria-pressed="false">Join</button></div>
       </div></section>
@@ -245,7 +245,7 @@
     </aside>
 
     <aside class="contact-rail" aria-label="Contacts and quick links">
-      <section class="contact-panel" id="contacts-panel"><h2 class="contact-heading">Friends <button id="contact-search-toggle" type="button" aria-label="Search friends" aria-expanded="false">⌕</button></h2><input id="contact-search" class="contact-search" type="search" placeholder="Find a friend" aria-label="Search friends" hidden><div class="contact-list">
+      <section class="contact-panel" id="contacts-panel"><h2 class="contact-heading">Friends <button id="contact-search-toggle" type="button" aria-label="Search friends" aria-expanded="false">⌕</button></h2><input id="contact-search" class="contact-search" type="search" placeholder="Find a friend" aria-label="Search friends" hidden><div class="contact-list" id="contact-list">
         <div class="contact"><img class="avatar" src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=70&q=70" alt=""><span class="contact-name">Maria Lopez</span><span class="online-dot" aria-label="Online"></span></div>
         <div class="contact"><img class="avatar" src="https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=70&q=70" alt=""><span class="contact-name">Daniel Ruiz</span><span class="online-dot" aria-label="Online"></span></div>
         <div class="contact"><img class="avatar" src="https://images.unsplash.com/photo-1531123897727-8f129e1688ce?auto=format&fit=crop&w=70&q=70" alt=""><span class="contact-name">Sofia Martinez</span><span class="online-dot" aria-label="Online"></span></div>
@@ -293,7 +293,17 @@
   <dialog class="app-dialog" id="story-dialog" aria-labelledby="story-title">
     <div class="story-viewer"><button class="dialog-close" type="button" data-close-dialog aria-label="Close">×</button><img id="story-image" alt=""><h2 id="story-title"></h2><p>Story preview</p></div>
   </dialog>
-  <dialog class="app-dialog" id="comments-dialog" aria-labelledby="comments-title">
+  <dialog class="app-dialog" id="group-dialog" aria-labelledby="group-title">
+    <form id="group-form" method="dialog" class="dialog-content">
+      <button class="dialog-close" type="button" data-close-dialog aria-label="Close">×</button>
+      <p class="dialog-eyebrow">CREATE GROUP</p>
+      <h2 id="group-title">New group</h2>
+      <p class="dialog-copy">Start a community around a shared interest.</p>
+      <label class="dialog-field">Group name<input id="group-name" type="text" maxlength="40" required></label>
+      <label class="dialog-field">Description<textarea id="group-description" maxlength="200" rows="3"></textarea></label>
+      <button class="dialog-primary" type="submit">Create group</button>
+    </form>
+  </dialog>
     <div class="dialog-content"><button class="dialog-close" type="button" data-close-dialog aria-label="Close">×</button><p class="dialog-eyebrow">CONVERSATION</p><h2 id="comments-title">Replies</h2><div id="comments-list" class="comments-list"></div><form id="comment-form" class="comment-form"><input id="comment-text" type="text" maxlength="1000" placeholder="Write a reply..." aria-label="Write a reply" required><button class="dialog-primary" type="submit">Reply</button></form></div>
   </dialog>
 

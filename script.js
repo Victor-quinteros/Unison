@@ -18,9 +18,8 @@
 	const demoComments = new Map();
 	const photoInput = document.querySelector("#photo-input");
 	const storyInput = document.querySelector("#story-input");
-	const authDialog = document.querySelector("#auth-dialog");
-	const commentsDialog = document.querySelector("#comments-dialog");
-	const storyDialog = document.querySelector("#story-dialog");
+	const groupDialog = document.querySelector("#group-dialog");
+	const groupForm = document.querySelector("#group-form");
 	const publicProfilePage = document.querySelector("#public-profile-page");
 	const messagesPage = document.querySelector("#messages-page");
 	const messageForm = document.querySelector("#message-form");
@@ -1418,18 +1417,35 @@
 			showToast(error.message);
 		}
 	});
-	document.querySelectorAll("[data-group-id]").forEach((button) => button.addEventListener("click", async () => {
-		const shouldJoin = button.getAttribute("aria-pressed") !== "true";
-		if (window.UnisonApi.isConfigured() && !requireSignedIn()) return;
-		try {
-			if (window.UnisonApi.isConfigured()) await window.UnisonApi.toggleGroupMembership(button.dataset.groupId, shouldJoin);
-			else if (shouldJoin) demoJoinedGroups.add(button.dataset.groupId);
-			else demoJoinedGroups.delete(button.dataset.groupId);
-			setGroupButton(button, shouldJoin);
-		} catch (error) {
-			showToast(error.message);
-		}
-	}));
+	const createGroupBtn = document.querySelector("#create-group-btn");
+	if (createGroupBtn) {
+		createGroupBtn.addEventListener("click", () => {
+			if (!requireSignedIn()) return;
+			if (!window.UnisonApi.isConfigured()) { showToast("Connect Supabase to create groups."); return; }
+			if (groupDialog && !groupDialog.open) groupDialog.showModal();
+		});
+	}
+	if (groupForm) {
+		groupForm.addEventListener("submit", async (event) => {
+			event.preventDefault();
+			if (!requireSignedIn()) return;
+			const nameInput = document.querySelector("#group-name");
+			const descInput = document.querySelector("#group-description");
+			const name = nameInput?.value || "";
+			const description = descInput?.value || "";
+			try {
+				await window.UnisonApi.createGroup({ name, description });
+				showToast("Group created.");
+				if (groupDialog) groupDialog.close();
+				if (nameInput) nameInput.value = "";
+				if (descInput) descInput.value = "";
+				await refreshGroupMemberships();
+				await refreshSearchGroups("");
+			} catch (error) {
+				showToast(error.message);
+			}
+		});
+	}
 	document.querySelectorAll("[data-coming-soon]").forEach((button) => button.addEventListener("click", () => showToast("That section is not available yet.")));
 	document.querySelectorAll("[data-scroll-to]").forEach((button) => button.addEventListener("click", () => {
 		document.querySelector(`#${button.dataset.scrollTo}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
