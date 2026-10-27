@@ -91,10 +91,11 @@ create table if not exists public.posts (
 	scope text not null default 'home' check (scope in ('home', 'townsquare', 'community')),
 	visibility text not null default 'public' check (visibility in ('public', 'private')),
 	image_path text,
+	group_id text references public.groups (id) on delete cascade,
 	created_at timestamptz not null default now()
 );
 alter table public.posts drop constraint if exists posts_scope_check;
-alter table public.posts add constraint posts_scope_check check (scope in ('home', 'townsquare', 'community'));
+alter table public.posts add constraint posts_scope_check check (scope in ('home', 'townsquare', 'community', 'group'));
 alter table public.posts add column if not exists visibility text not null default 'public';
 alter table public.posts drop constraint if exists posts_visibility_check;
 alter table public.posts add constraint posts_visibility_check check (visibility in ('public', 'private'));
@@ -132,7 +133,10 @@ create table if not exists public.follows (
 create table if not exists public.groups (
 	id text primary key,
 	name text not null,
-	description text not null default ''
+	description text not null default '',
+	image_path text,
+	owner_id uuid not null references public.profiles (id) on delete cascade,
+	created_at timestamptz not null default now()
 );
 
 create table if not exists public.groups_memberships (
@@ -171,7 +175,10 @@ on conflict (id) do nothing;
 create table if not exists public.groups (
 	id text primary key,
 	name text not null,
-	description text not null default ''
+	description text not null default '',
+	image_path text,
+	owner_id uuid not null references public.profiles (id) on delete cascade,
+	created_at timestamptz not null default now()
 );
 
 create table if not exists public.groups_memberships (
@@ -212,7 +219,7 @@ grant select on public.profiles, public.groups, public.groups_memberships, publi
 grant select on public.posts, public.post_likes, public.post_comments, public.stories to authenticated;
 revoke select on public.posts, public.post_likes, public.post_comments, public.stories from anon, public;
 grant select on public.posts to anon;
-grant select, insert, update, delete on public.profiles, public.posts, public.post_likes, public.post_comments, public.saved_posts, public.follows, public.groups_memberships, public.stories to authenticated;
+grant select, insert, update, delete on public.profiles, public.posts, public.post_likes, public.post_comments, public.saved_posts, public.follows, public.groups_memberships, public.stories, public.groups to authenticated;
 revoke update on public.posts from authenticated;
 revoke delete on public.post_comments from anon, public;
 revoke all on public.messages from anon, public;
@@ -337,6 +344,39 @@ drop policy if exists "Users leave groups as themselves" on public.groups_member
 create policy "Users leave groups as themselves"
 	on public.groups_memberships for delete to authenticated
 	using (user_id = (select auth.uid()));
+
+drop policy if exists "Users create groups" on public.groups;
+create policy "Users create groups"
+	on public.groups for insert to authenticated
+	with check (owner_id = (select auth.uid()));
+
+drop policy if exists "Users update own groups" on public.groups;
+create policy "Users update own groups"
+	on public.groups for update to authenticated
+	using (owner_id = (select auth.uid()));
+
+drop policy if exists "Users delete own groups" on public.groups;
+create policy "Users delete own groups"
+	on public.groups for delete to authenticated
+	using (owner_id = (select auth.uid()));
+
+drop policy if exists "Group posts readable by members" on public.posts;
+create policy "Group posts readable by members"
+	on public.posts for select to authenticated
+	using (scope <> 'group' OR group_id IN (
+		SELECT group_id FROM public.groups_memberships WHERE user_id = (select auth.uid())
+	));
+
+drop policy if exists "Users create posts in groups" on public.posts;
+create policy "Users create posts in groups"
+	on public.posts for insert to authenticated
+	with check (
+		scope <> 'group' OR (
+			scope = 'group' AND group_id IN (
+				SELECT group_id FROM public.groups_memberships WHERE user_id = (select auth.uid())
+			)
+		)
+	);
 
 drop policy if exists "Unexpired stories are publicly readable" on public.stories;
 drop policy if exists "Unexpired stories are readable by members" on public.stories;
