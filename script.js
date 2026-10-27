@@ -807,6 +807,7 @@
 		document.body.classList.toggle("signed-in", !signedOut);
 		document.querySelector(".app-shell").classList.toggle("signed-in", !signedOut);
 		authGate.hidden = !signedOut;
+		document.querySelector(".notification-menu-container").hidden = signedOut;
 		feedRequestId += 1;
 		feedPosts = signedOut ? [...window.UnisonData.posts] : [];
 		renderFeed();
