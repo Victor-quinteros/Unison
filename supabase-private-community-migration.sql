@@ -40,6 +40,8 @@ alter table public.posts
 	add constraint posts_visibility_check check (visibility in ('public', 'private'));
 
 grant select on public.posts, public.post_likes, public.post_comments, public.stories to authenticated;
+grant delete on public.post_comments to authenticated;
+revoke delete on public.post_comments from anon, public;
 revoke select on public.posts, public.post_likes, public.post_comments, public.stories from anon, public;
 grant select on public.posts to anon;
 grant insert on public.posts to authenticated;
@@ -87,6 +89,17 @@ drop policy if exists "Users create comments as themselves" on public.post_comme
 create policy "Users create comments as themselves"
 	on public.post_comments for insert to authenticated
 	with check (user_id = (select auth.uid()) and exists (select 1 from public.posts where posts.id = post_comments.post_id));
+drop policy if exists "Users delete their own comments" on public.post_comments;
+create policy "Users delete their own comments or comments on their posts"
+	on public.post_comments for delete to authenticated
+	using (
+		user_id = (select auth.uid())
+		or exists (
+			select 1 from public.posts
+			where posts.id = post_comments.post_id
+				and posts.user_id = (select auth.uid())
+		)
+	);
 
 drop policy if exists "Unexpired stories are publicly readable" on public.stories;
 drop policy if exists "Unexpired stories are readable by members" on public.stories;

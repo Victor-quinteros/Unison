@@ -430,8 +430,12 @@ h1 { margin-bottom: 3px; font-family: var(--display); font-size: 20px; font-weig
 .story-viewer .dialog-close { z-index: 1; position: absolute; top: 14px; right: 14px; }
 .story-viewer h2, .story-viewer p { position: relative; z-index: 1; margin: 0; text-shadow: 0 2px 8px rgba(0, 0, 0, .5); }
 .comments-list { display: grid; max-height: 300px; gap: 9px; overflow-y: auto; }
-.comment-item { padding: 9px; border-radius: 6px; background: var(--surface-soft); font-size: 11px; line-height: 1.5; }
-.comment-item strong { display: block; margin-bottom: 3px; }
+.comment-item { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: start; gap: 3px 8px; padding: 9px; border-radius: 6px; background: var(--surface-soft); font-size: 11px; line-height: 1.5; }
+.comment-item strong, .comment-item > span { grid-column: 1; }
+.comment-item strong { display: block; margin-bottom: 1px; }
+.comment-delete { grid-column: 2; grid-row: 1 / span 2; padding: 2px 4px; border: 0; background: transparent; color: #c84d3a; font: inherit; font-size: 10px; cursor: pointer; }
+.comment-delete:hover { text-decoration: underline; }
+.comment-delete:disabled { opacity: .6; cursor: wait; }
 .comment-form { display: flex; gap: 8px; align-items: center; }
 .comment-form .dialog-primary { flex: 0 0 auto; }
 .public-profile-page { display: grid; gap: 0; overflow: hidden; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); box-shadow: var(--shadow); }

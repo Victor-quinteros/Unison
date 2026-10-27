@@ -214,6 +214,7 @@ revoke select on public.posts, public.post_likes, public.post_comments, public.s
 grant select on public.posts to anon;
 grant select, insert, update, delete on public.profiles, public.posts, public.post_likes, public.post_comments, public.saved_posts, public.follows, public.groups_memberships, public.stories to authenticated;
 revoke update on public.posts from authenticated;
+revoke delete on public.post_comments from anon, public;
 revoke all on public.messages from anon, public;
 grant select, insert on public.messages to authenticated;
 drop policy if exists "Profiles are readable by everyone" on public.profiles;
@@ -284,9 +285,17 @@ create policy "Users send messages as themselves"
 	on public.messages for insert to authenticated
 	with check ((select auth.uid()) = sender_id and sender_id <> recipient_id);
 drop policy if exists "Users delete their own comments" on public.post_comments;
-create policy "Users delete their own comments"
+drop policy if exists "Users delete their own comments or comments on their posts" on public.post_comments;
+create policy "Users delete their own comments or comments on their posts"
 	on public.post_comments for delete to authenticated
-	using (user_id = (select auth.uid()));
+	using (
+		user_id = (select auth.uid())
+		or exists (
+			select 1 from public.posts
+			where posts.id = post_comments.post_id
+				and posts.user_id = (select auth.uid())
+		)
+	);
 
 drop policy if exists "Users read their own saved posts" on public.saved_posts;
 create policy "Users read their own saved posts"

@@ -1349,6 +1349,19 @@
 			const text = document.createElement("span");
 			text.textContent = comment.body;
 			item.append(author, text);
+			const signedInUser = window.UnisonAuth.getUser();
+			const canDelete = Boolean(comment.id && signedInUser && (
+				comment.user_id === signedInUser.id || activeCommentPost?.dataset.userId === signedInUser.id
+			));
+			if (canDelete) {
+				const remove = document.createElement("button");
+				remove.className = "comment-delete";
+				remove.type = "button";
+				remove.dataset.deleteComment = comment.id;
+				remove.textContent = "Delete";
+				remove.setAttribute("aria-label", "Delete this comment");
+				item.append(remove);
+			}
 			list.append(item);
 		});
 	}
@@ -1371,6 +1384,27 @@
 			showToast(error.message);
 		}
 	}
+
+	document.querySelector("#comments-list").addEventListener("click", async (event) => {
+		const button = event.target.closest("[data-delete-comment]");
+		if (!button || !activeCommentPost || !requireSignedIn()) return;
+		if (!window.UnisonApi.isConfigured() || !activeCommentPost.dataset.postId) return showToast("This sample comment cannot be deleted.");
+		if (!window.confirm("Delete this comment? This cannot be undone.")) return;
+		button.disabled = true;
+		try {
+			await window.UnisonApi.deleteComment(button.dataset.deleteComment);
+			const comments = await window.UnisonApi.listComments(activeCommentPost.dataset.postId);
+			const postData = postDataForElement(activeCommentPost);
+			if (postData) postData.replies = comments.length;
+			activeCommentPost.querySelector('[data-field="replies"]').textContent = `${comments.length} replies`;
+			renderComments(comments);
+			showToast("Comment deleted.");
+		} catch (error) {
+			showToast(error.message);
+		} finally {
+			button.disabled = false;
+		}
+	});
 
 	// 04. Post actions and composer
 	feed.addEventListener("click", async (event) => {
