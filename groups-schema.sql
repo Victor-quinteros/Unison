@@ -1,8 +1,38 @@
--- Run in the Supabase SQL Editor after supabase-schema.sql and
--- supabase-private-community-migration.sql. This migration makes Groups a
+-- Run in the Supabase SQL Editor. This migration makes Groups a
 -- first-class feature: public/private privacy, categories, cover and avatar
 -- images, owner/admin/member roles, join requests that an admin approves,
 -- pinned posts with moderation, and invite links.
+
+-- 00. Base tables (in case supabase-schema.sql failed or was skipped)
+do $$
+begin
+    -- Rename singular table if it exists (common typo)
+    if exists (select 1 from information_schema.tables where table_schema = 'public' and table_name = 'group_memberships') then
+        alter table public.group_memberships rename to groups_memberships;
+    end if;
+end $$;
+
+create table if not exists public.groups (
+    id text primary key,
+    name text not null,
+    description text not null default '',
+    image_path text,
+    owner_id uuid not null references public.profiles (id) on delete cascade,
+    created_at timestamptz not null default now()
+);
+
+create table if not exists public.groups_memberships (
+    group_id text not null references public.groups (id) on delete cascade,
+    user_id uuid not null references public.profiles (id) on delete cascade,
+    created_at timestamptz not null default now(),
+    primary key (group_id, user_id)
+);
+
+alter table public.groups enable row level security;
+alter table public.groups_memberships enable row level security;
+
+-- Add group_id to posts if missing (in case posts existed before group support)
+alter table public.posts add column if not exists group_id text references public.groups (id) on delete cascade;
 
 -- 01. New group columns
 alter table public.groups add column if not exists privacy text not null default 'public';
