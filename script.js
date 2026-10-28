@@ -22,6 +22,9 @@
 	const storyDialog = document.querySelector("#story-dialog");
 	const groupDialog = document.querySelector("#group-dialog");
 	const groupForm = document.querySelector("#group-form");
+	const groupsPage = document.querySelector("#groups-page");
+	const groupPage = document.querySelector("#group-page");
+	const groupFeed = document.querySelector("#group-feed");
 	const commentsDialog = document.querySelector("#comments-dialog");
 	const publicProfilePage = document.querySelector("#public-profile-page");
 	const messagesPage = document.querySelector("#messages-page");
@@ -51,6 +54,13 @@
 	let notifications = [];
 	let unreadCount = 0;
 	let notificationsRequestId = 0;
+	let activeGroupId = "";
+	let activeGroup = null;
+	let activeGroupMembership = { role: "", status: "" };
+	let groupPosts = [];
+	let groupRequestId = 0;
+	let pendingInviteCode = "";
+	const groupCategories = ["General", "Technology", "Gaming", "Travel", "Sports", "Music", "Food", "Art", "Business", "Education", "Health", "Nature", "Automotive"];
 	const fallbackAvatar = "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&q=80";
 	const profileEditorAvatarPlaceholder = `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" rx="50" fill="#e8eef5"/><circle cx="50" cy="37" r="18" fill="#9aaabd"/><path d="M17 91c3-21 16-32 33-32s30 11 33 32" fill="#9aaabd"/></svg>')}`;
 	const profileStickerGlyphs = { star: "⭐", flower: "🌸", sparkle: "✨", fire: "🔥" };
@@ -120,7 +130,8 @@
 				feed: currentFeed,
 				search: search.value,
 				profileId: activePublicProfileId,
-				profileHandle: activePublicProfileHandle
+				profileHandle: activePublicProfileHandle,
+				groupId: activeGroupId
 			}));
 		} catch { /* Keep navigation usable when browser storage is unavailable. */ }
 	}
@@ -370,7 +381,22 @@
 		post.dataset.author = postData.handle;
 		post.dataset.search = `${postData.author} ${postData.handle} ${postData.search || ""} ${postData.text}`.toLowerCase();
 		const currentUser = window.UnisonAuth.getUser();
-		post.querySelector("[data-owner-menu-wrap]").hidden = !currentUser || postData.userId !== currentUser.id;
+		const canModerate = Boolean(postData.canModerate);
+		post.querySelector("[data-owner-menu-wrap]").hidden = !currentUser || (postData.userId !== currentUser.id && !canModerate);
+		if (canModerate) {
+			const ownerMenu = post.querySelector("[data-owner-menu]");
+			const pin = document.createElement("button");
+			pin.type = "button";
+			pin.dataset.ownerAction = "pin";
+			pin.textContent = postData.pinned ? "Unpin post" : "Pin post";
+			ownerMenu.prepend(pin);
+		}
+		if (postData.pinned) {
+			post.classList.add("pinned");
+			post.querySelector('[data-field="pinned-badge"]').hidden = false;
+		} else {
+			post.querySelector('[data-field="pinned-badge"]').remove();
+		}
 
 		if (postData.local || postData.community || postData.visibility === "private") {
 			post.classList.add("town-square-post");
@@ -425,10 +451,11 @@
 		applyFilters();
 	}
 
-	function setGroupButton(button, joined) {
+	function setGroupButton(button, joined, pending = false) {
 		button.setAttribute("aria-pressed", String(joined));
 		button.classList.toggle("joined", joined);
-		button.textContent = joined ? "Joined" : "Join";
+		button.classList.toggle("pending", pending);
+		button.textContent = joined ? "Joined" : pending ? "Requested" : "Join";
 	}
 
 	function setFollowButton(button, isFollowing) {
@@ -440,8 +467,11 @@
 	async function refreshGroupMemberships() {
 		if (!window.UnisonApi.isConfigured() || !window.UnisonAuth.getUser()) return;
 		const memberships = await window.UnisonApi.listGroupMemberships();
-		const joined = new Set(memberships.map((membership) => membership.group_id));
-		document.querySelectorAll("[data-group-id]").forEach((button) => setGroupButton(button, joined.has(button.dataset.groupId)));
+		const state = new Map(memberships.map((membership) => [membership.group_id, membership.status]));
+		document.querySelectorAll("[data-group-id]").forEach((button) => {
+			const status = state.get(button.dataset.groupId);
+			setGroupButton(button, status === "approved", status === "pending");
+		});
 	}
 
 	async function refreshPeople() {
@@ -577,36 +607,272 @@
 		section.hidden = !people.length;
 	}
 
+	function groupMembersLabel(count) {
+		return `${count || 0} ${count === 1 ? "member" : "members"}`;
+	}
+
+	function createGroupCard(group, membership) {
+		const card = document.createElement("article");
+		card.className = "group-card";
+		card.dataset.openGroup = group.id;
+		const image = document.createElement("img");
+		image.className = "group-card-avatar";
+		image.src = group.avatar || fallbackAvatar;
+		image.alt = "";
+		const body = document.createElement("div");
+		body.className = "group-card-body";
+		const name = document.createElement("strong");
+		name.className = "group-card-name";
+		name.textContent = group.name;
+		const meta = document.createElement("span");
+		meta.className = "group-card-meta";
+		meta.textContent = `${group.privacy === "private" ? "Private" : "Public"} · ${group.category || "General"} · ${groupMembersLabel(group.memberCount)}`;
+		const description = document.createElement("p");
+		description.textContent = group.description || "A group for people with shared interests.";
+		body.append(name, meta, description);
+		const join = document.createElement("button");
+		join.className = "join-button";
+		join.type = "button";
+		join.dataset.groupId = group.id;
+		setGroupButton(join, membership === "approved", membership === "pending");
+		card.append(image, body, join);
+		return card;
+	}
+
+	async function loadGroupMembershipStates() {
+		if (!window.UnisonApi.isConfigured() || !window.UnisonAuth.getUser()) return new Map();
+		const memberships = await window.UnisonApi.listGroupMemberships();
+		return new Map(memberships.map((membership) => [membership.group_id, membership.status]));
+	}
+
 	async function refreshSearchGroups(query) {
 		const requestId = ++searchGroupsRequestId;
 		const section = document.querySelector("#search-groups-section");
 		const list = document.querySelector("#search-groups-list");
 		let groups;
-		if (window.UnisonApi.isConfigured()) {
-			groups = await window.UnisonApi.searchGroups(query);
-		} else {
-			groups = [...document.querySelectorAll(".right-rail [data-group-id]")]
-				.filter((button) => button.closest(".suggestion")?.textContent.toLowerCase().includes(query.toLowerCase()))
-				.map((button) => ({ id: button.dataset.groupId, name: button.closest(".suggestion").querySelector("strong")?.textContent || "Group", description: "Join the conversation." }));
+		try {
+			if (window.UnisonApi.isConfigured()) {
+				groups = await window.UnisonApi.listDiscoverGroups({ search: query, limit: 12 });
+			} else {
+				groups = [...document.querySelectorAll(".right-rail [data-group-id]")]
+					.filter((button) => button.closest(".suggestion")?.textContent.toLowerCase().includes(query.toLowerCase()))
+					.map((button) => ({ id: button.dataset.groupId, name: button.closest(".suggestion").querySelector("strong")?.textContent || "Group", description: "Join the conversation.", memberCount: 0, privacy: "public", category: "General" }));
+			}
+		} catch (error) {
+			if (requestId !== searchGroupsRequestId) return;
+			section.hidden = true;
+			showToast(error.message);
+			return;
 		}
 		if (requestId !== searchGroupsRequestId) return;
-		list.replaceChildren(...groups.map((group) => {
-			const card = document.createElement("article");
-			card.className = "search-group-card";
-			const name = document.createElement("strong");
-			name.textContent = group.name;
-			const description = document.createElement("p");
-			description.textContent = group.description || "A group for people with shared interests.";
-			const join = document.createElement("button");
-			join.className = "join-button";
-			join.type = "button";
-			join.dataset.groupId = group.id;
-			setGroupButton(join, demoJoinedGroups.has(group.id));
-			card.append(name, description, join);
-			return card;
-		}));
+		const membershipStates = window.UnisonApi.isConfigured() ? await loadGroupMembershipStates() : new Map();
+		if (requestId !== searchGroupsRequestId) return;
+		list.replaceChildren(...groups.map((group) => createGroupCard(group, membershipStates.get(group.id))));
 		section.hidden = !groups.length;
-		if (window.UnisonApi.isConfigured() && window.UnisonAuth.getUser()) await refreshGroupMemberships();
+	}
+
+	// 02b. Groups hub and group page
+	function groupEmptyMessage(container, message) {
+		const empty = document.createElement("p");
+		empty.className = "group-empty";
+		empty.textContent = message;
+		container.replaceChildren(empty);
+	}
+
+	function populateGroupCategories() {
+		const filter = document.querySelector("#groups-category-filter");
+		const select = document.querySelector("#group-category");
+		if (filter && filter.options.length <= 1) {
+			groupCategories.forEach((category) => filter.append(new Option(category, category)));
+		}
+		if (select && !select.options.length) {
+			groupCategories.forEach((category) => select.append(new Option(category, category)));
+		}
+	}
+
+	async function renderGroupsHub() {
+		const mine = document.querySelector("#groups-mine");
+		const discover = document.querySelector("#groups-discover");
+		if (!window.UnisonApi.isConfigured()) {
+			groupEmptyMessage(mine, "Connect Supabase to create and join groups.");
+			groupEmptyMessage(discover, "Connect Supabase to browse groups.");
+			return;
+		}
+		const searchValue = document.querySelector("#groups-search").value.trim();
+		const category = document.querySelector("#groups-category-filter").value;
+		const membershipStates = await loadGroupMembershipStates();
+		if (window.UnisonAuth.getUser()) {
+			const myGroups = await window.UnisonApi.listMyGroups();
+			if (!myGroups.length) groupEmptyMessage(mine, "You haven't joined any groups yet. Find one below to get started.");
+			else mine.replaceChildren(...myGroups.map((group) => createGroupCard(group, group.status)));
+		} else {
+			groupEmptyMessage(mine, "Sign in to see the groups you belong to.");
+		}
+		const groups = await window.UnisonApi.listDiscoverGroups({ search: searchValue, category });
+		if (!groups.length) groupEmptyMessage(discover, "No groups match your search yet.");
+		else discover.replaceChildren(...groups.map((group) => createGroupCard(group, membershipStates.get(group.id))));
+	}
+
+	function groupIsModerator() {
+		return activeGroupMembership.status === "approved" && ["owner", "admin"].includes(activeGroupMembership.role);
+	}
+
+	async function openGroup(groupId) {
+		if (!requireSignedIn()) return;
+		if (!window.UnisonApi.isConfigured()) { showToast("Connect Supabase to open groups."); return; }
+		const requestId = ++groupRequestId;
+		activeGroupId = groupId;
+		setView("group");
+		document.querySelector("#group-page-name").textContent = "Loading group…";
+		try {
+			const [group, memberships, members, posts] = await Promise.all([
+				window.UnisonApi.getGroupDetail(groupId),
+				window.UnisonApi.listGroupMemberships(),
+				window.UnisonApi.listGroupMembers(groupId).catch(() => []),
+				window.UnisonApi.listPosts({ scope: "group", groupId })
+			]);
+			if (requestId !== groupRequestId) return;
+			if (!group) { showToast("This group could not be found."); setView("groups"); return; }
+			const mine = memberships.find((membership) => membership.group_id === groupId);
+			activeGroup = group;
+			activeGroupMembership = { role: mine?.role || "", status: mine?.status || "" };
+			groupMembers = members;
+			const canModerate = groupIsModerator();
+			groupPosts = posts.map((post) => ({ ...post, canModerate }));
+			renderGroupDetail();
+			renderGroupFeed();
+			renderGroupMembers();
+		} catch (error) {
+			if (requestId !== groupRequestId) return;
+			showToast(error.message);
+		}
+	}
+
+	function renderGroupDetail() {
+		const group = activeGroup;
+		if (!group) return;
+		const approvedMembers = groupMembers.filter((member) => member.status === "approved");
+		const isMember = activeGroupMembership.status === "approved";
+		const isPending = activeGroupMembership.status === "pending";
+		const canModerate = groupIsModerator();
+		document.querySelector("#group-page-name").textContent = group.name;
+		document.querySelector("#group-privacy-label").textContent = `${group.privacy === "private" ? "PRIVATE" : "PUBLIC"} GROUP`;
+		document.querySelector("#group-page-meta").textContent = `${group.category || "General"} · ${groupMembersLabel(approvedMembers.length)}`;
+		document.querySelector("#group-page-description").textContent = group.description || "This group has not added a description yet.";
+		const avatar = document.querySelector("#group-avatar");
+		avatar.src = group.avatar || fallbackAvatar;
+		avatar.alt = `${group.name} group picture`;
+		const cover = document.querySelector("#group-cover");
+		const coverImage = document.querySelector("#group-cover-image");
+		if (group.cover) {
+			cover.hidden = false;
+			coverImage.src = group.cover;
+			coverImage.alt = `${group.name} cover photo`;
+		} else {
+			cover.hidden = true;
+			coverImage.removeAttribute("src");
+		}
+		const join = document.querySelector("#group-join");
+		join.hidden = isMember;
+		join.disabled = isPending;
+		join.classList.toggle("pending", isPending);
+		join.textContent = isPending ? "Requested" : "Join group";
+		const manage = document.querySelector("#group-manage-toggle");
+		manage.hidden = !canModerate;
+		const admin = document.querySelector("#group-admin");
+		if (!canModerate) admin.hidden = true;
+		manage.textContent = admin.hidden ? "Manage" : "Hide management";
+		const inviteBox = document.querySelector("#group-invite-box");
+		inviteBox.hidden = !canModerate;
+		if (canModerate) {
+			const link = document.querySelector("#group-invite-link");
+			link.value = group.invite_code ? `${location.origin}${location.pathname}#invite/${group.invite_code}` : "";
+			link.placeholder = group.invite_code ? "" : "Generate a link to invite people";
+		}
+		document.querySelector("#group-post-form").hidden = !isMember;
+	}
+
+	function createMemberRow(member, isRequest) {
+		const row = document.createElement("div");
+		row.className = "group-member-row";
+		row.dataset.memberId = member.userId;
+		const avatar = document.createElement("img");
+		avatar.className = "group-member-avatar";
+		avatar.src = member.avatar || fallbackAvatar;
+		avatar.alt = "";
+		const info = document.createElement("div");
+		info.className = "group-member-info";
+		const name = document.createElement("strong");
+		name.textContent = member.name;
+		const handle = document.createElement("span");
+		handle.textContent = `@${member.handle || "member"}${member.role && member.role !== "member" ? ` · ${member.role}` : ""}`;
+		info.append(name, handle);
+		row.append(avatar, info);
+		const isSelf = member.userId === window.UnisonAuth.getUser()?.id;
+		if (groupIsModerator() && !isSelf) {
+			if (isRequest) {
+				const approve = document.createElement("button");
+				approve.className = "join-button";
+				approve.type = "button";
+				approve.dataset.memberAction = "approve";
+				approve.textContent = "Approve";
+				const decline = document.createElement("button");
+				decline.className = "text-link";
+				decline.type = "button";
+				decline.dataset.memberAction = "decline";
+				decline.textContent = "Decline";
+				row.append(approve, decline);
+			} else {
+				const owner = activeGroupMembership.role === "owner";
+				if (owner && member.role !== "owner") {
+					const promote = document.createElement("button");
+					promote.className = "text-link";
+					promote.type = "button";
+					promote.dataset.memberAction = member.role === "admin" ? "demote" : "promote";
+					promote.textContent = member.role === "admin" ? "Remove admin" : "Make admin";
+					row.append(promote);
+				}
+				if (member.role !== "owner") {
+					const remove = document.createElement("button");
+					remove.className = "text-link";
+					remove.type = "button";
+					remove.dataset.memberAction = "remove";
+					remove.textContent = "Remove";
+					row.append(remove);
+				}
+			}
+		}
+		return row;
+	}
+
+	function renderGroupMembers() {
+		const requests = groupMembers.filter((member) => member.status === "pending");
+		const approved = groupMembers.filter((member) => member.status === "approved");
+		document.querySelector("#group-request-count").textContent = String(requests.length);
+		document.querySelector("#group-member-count").textContent = String(approved.length);
+		const requestList = document.querySelector("#group-requests");
+		if (!requests.length) groupEmptyMessage(requestList, "No pending join requests.");
+		else requestList.replaceChildren(...requests.map((member) => createMemberRow(member, true)));
+		const memberList = document.querySelector("#group-members");
+		if (!approved.length) groupEmptyMessage(memberList, "No members to show yet.");
+		else memberList.replaceChildren(...approved.map((member) => createMemberRow(member, false)));
+	}
+
+	function renderGroupFeed() {
+		if (!groupFeed) return;
+		if (!groupPosts.length) {
+			groupEmptyMessage(groupFeed, "No posts in this group yet. Be the first to share something.");
+			return;
+		}
+		groupFeed.replaceChildren(...groupPosts.map(renderPost));
+	}
+
+	async function refreshGroupFeed() {
+		if (!activeGroupId) return;
+		const posts = await window.UnisonApi.listPosts({ scope: "group", groupId: activeGroupId });
+		const canModerate = groupIsModerator();
+		groupPosts = posts.map((post) => ({ ...post, canModerate }));
+		renderGroupFeed();
 	}
 
 	async function refreshFollowState() {
@@ -934,11 +1200,11 @@
 			post.hidden = !(matchesSearch && matchesView && matchesFollowing && matchesMine);
 			if (!post.hidden) visible += 1;
 		});
-		emptyState.style.display = (visible || ["explore", "watch", "events"].includes(currentView)) ? "none" : "block";
+		emptyState.style.display = (visible || ["explore", "watch", "events", "groups", "group"].includes(currentView)) ? "none" : "block";
 	}
 
 	function setView(view) {
-		const allowedGuestViews = new Set(["home", "community", "explore", "townsquare", "events", "watch", "public-profile"]);
+		const allowedGuestViews = new Set(["home", "community", "explore", "townsquare", "events", "watch", "public-profile", "groups"]);
 		if (!window.UnisonAuth.getUser() && !allowedGuestViews.has(view)) {
 			if (view !== "home") openAuthDialog("Sign in to browse posts and community features.");
 			return;
@@ -954,7 +1220,7 @@
 		currentView = view;
 		currentFeed = view === "my-posts" ? "mine" : "all";
 		persistActiveView();
-		viewTitle.textContent = view === "public-profile" ? "Member profile" : view === "account" ? "My account" : view === "settings" ? "Settings" : view === "messages" ? "Messages" : view === "search" ? "Search results" : view === "my-profile" ? "My Profile" : view === "my-posts" ? "My posts" : view === "saved" ? "Saved" : view === "explore" ? "Explore" : view === "townsquare" ? "Townsquare" : view === "community" ? "Community feed" : view === "notifications" ? "Notifications" : view === "watch" ? "Watch" : view === "pages" ? "Pages" : view === "events" ? "Events" : "Home";
+		viewTitle.textContent = view === "public-profile" ? "Member profile" : view === "account" ? "My account" : view === "settings" ? "Settings" : view === "messages" ? "Messages" : view === "search" ? "Search results" : view === "my-profile" ? "My Profile" : view === "my-posts" ? "My posts" : view === "saved" ? "Saved" : view === "explore" ? "Explore" : view === "townsquare" ? "Townsquare" : view === "community" ? "Community feed" : view === "notifications" ? "Notifications" : view === "watch" ? "Watch" : view === "pages" ? "Pages" : view === "events" ? "Events" : view === "groups" ? "Groups" : view === "group" ? "Group" : "Home";
 		if (view === "community" || view === "explore" || view === "townsquare" || view === "watch" || view === "pages" || view === "events") {
 			pageSubtitle.textContent = view === "community" ? "Public community posts are visible to everyone." : view === "explore" ? "Discover people, posts, and groups." : view === "townsquare" ? "Your neighborhood, one conversation at a time." : "Coming soon - check back later.";
 		}
@@ -980,7 +1246,7 @@
 				authGate.querySelector("p:not(.eyebrow)").textContent = "You’re viewing sample posts. Sign in or create an account to see members’ posts and join the conversation.";
 			}
 		}
-		pageSubtitle.textContent = view === "search" ? `Posts matching “${search.value.trim()}”` : view === "my-profile" ? "Manage your picture and the information people see on your profile." : view === "my-posts" ? "Everything you have shared with your circle." : view === "townsquare" ? "Your neighborhood, one conversation at a time." : view === "community" ? "Posts shared with every signed-in member." : view === "explore" ? "Discover people, posts, and groups." : view === "watch" ? "Videos and shows from your circle." : view === "pages" ? "Pages from communities and creators." : view === "events" ? "Upcoming events near you." : "Good things happen when we find each other.";
+		pageSubtitle.textContent = view === "search" ? `Posts matching “${search.value.trim()}”` : view === "my-profile" ? "Manage your picture and the information people see on your profile." : view === "my-posts" ? "Everything you have shared with your circle." : view === "townsquare" ? "Your neighborhood, one conversation at a time." : view === "community" ? "Posts shared with every signed-in member." : view === "explore" ? "Discover people, posts, and groups." : view === "watch" ? "Videos and shows from your circle." : view === "pages" ? "Pages from communities and creators." : view === "events" ? "Upcoming events near you." : view === "groups" ? "Join a group, follow the topics you care about, or start your own." : view === "group" ? activeGroup?.name || "Group home" : "Good things happen when we find each other.";
 		if (view === "messages") pageSubtitle.textContent = "Private conversations between you and other members.";
 		if (view === "public-profile") pageSubtitle.textContent = "Profile, background, and posts.";
 		if (view === "settings") pageSubtitle.textContent = "Personalize how Unison looks.";
@@ -1001,6 +1267,10 @@
 		settingsPage.hidden = view !== "settings";
 		document.querySelector("#notifications-page").hidden = view !== "notifications";
 		document.querySelector("#home").classList.toggle("notifications-mode", view === "notifications");
+		document.querySelector("#home").classList.toggle("groups-mode", view === "groups");
+		document.querySelector("#home").classList.toggle("group-mode", view === "group");
+		groupsPage.hidden = view !== "groups";
+		groupPage.hidden = view !== "group";
 		if (view === "account") {
 			const user = window.UnisonAuth.getUser();
 			document.querySelector("#account-email").value = user?.email || "";
@@ -1025,12 +1295,15 @@
 			if (exploreIntro) exploreIntro.hidden = view !== "explore";
 			authGate.hidden = !(view === "home" && !window.UnisonAuth.getUser());
 		}
-		feedControls.hidden = view === "townsquare" || view === "community" || view === "explore" || view === "watch" || view === "pages" || view === "events" || view === "search" || view === "my-profile" || view === "messages" || view === "settings" || view === "account" || view === "public-profile" || view === "notifications";
+		feedControls.hidden = view === "townsquare" || view === "community" || view === "explore" || view === "watch" || view === "pages" || view === "events" || view === "search" || view === "my-profile" || view === "messages" || view === "settings" || view === "account" || view === "public-profile" || view === "notifications" || view === "groups" || view === "group";
 		input.placeholder = view === "townsquare" ? "Share something happening nearby..." : view === "community" ? "Share with the community..." : "What's on your mind, Alex?";
 		postScope.value = view === "community" ? "community" : "home";
 		document.querySelector("#post-destination").hidden = view === "townsquare" || view === "community";
 		document.querySelector("#post-audience").hidden = view === "community";
-		document.querySelectorAll("[data-view]").forEach((button) => button.classList.toggle("active", button.dataset.view === view));
+		document.querySelectorAll("[data-view]").forEach((button) => {
+			const active = button.dataset.view === view || (view === "group" && button.dataset.view === "groups");
+			button.classList.toggle("active", active);
+		});
 		document.querySelectorAll("[data-filter]").forEach((button) => {
 			const active = button.dataset.filter === (view === "my-posts" ? "mine" : "all");
 			button.classList.toggle("active", active);
@@ -1065,6 +1338,12 @@
 			refreshNotifications().catch((error) => showToast(error.message));
 			return;
 		}
+		if (view === "groups") {
+			populateGroupCategories();
+			renderGroupsHub().catch((error) => showToast(error.message));
+			return;
+		}
+		if (view === "group") return;
 		if (["watch", "events", "explore"].includes(view)) {
 			feedPosts = [];
 			renderFeed();
@@ -1113,13 +1392,42 @@
 		if (query) navigateToSearch(query, false);
 	}
 
+	async function redeemPendingInvite() {
+		const code = pendingInviteCode;
+		pendingInviteCode = "";
+		if (!code || !window.UnisonApi.isConfigured()) return;
+		try {
+			const groupId = await window.UnisonApi.joinGroupWithInvite(code);
+			const id = typeof groupId === "string" ? groupId : String(groupId ?? "");
+			showToast("You joined the group.");
+			if (id) await openGroup(id);
+		} catch (error) {
+			showToast(error.message);
+		}
+	}
+
+	function restoreInviteRoute() {
+		if (!location.hash.startsWith("#invite/")) return;
+		let code = "";
+		try { code = decodeURIComponent(location.hash.slice("#invite/".length)); } catch { code = ""; }
+		history.replaceState({ view: "groups" }, "", "#home");
+		lastRouteHash = location.hash;
+		if (!code) return;
+		pendingInviteCode = code;
+		if (!window.UnisonAuth.getUser()) {
+			if (window.UnisonApi.isConfigured()) openAuthDialog("Sign in to accept this group invite.");
+			return;
+		}
+		redeemPendingInvite();
+	}
+
 	function restoreSavedView() {
 		if (location.hash.startsWith("#search/")) return;
 		let saved;
 		try { saved = JSON.parse(window.sessionStorage.getItem("unison.active-view") || "null"); } catch { saved = null; }
-		const allowedViews = new Set(["home", "community", "my-posts", "my-profile", "messages", "explore", "townsquare", "saved", "settings", "account", "public-profile", "notifications", "search"]);
+		const allowedViews = new Set(["home", "community", "my-posts", "my-profile", "messages", "explore", "townsquare", "saved", "settings", "account", "public-profile", "notifications", "search", "groups", "group"]);
 		if (!allowedViews.has(saved?.view)) return;
-		if (!window.UnisonAuth.getUser() && !["home", "community", "public-profile"].includes(saved.view)) {
+		if (!window.UnisonAuth.getUser() && !["home", "community", "public-profile", "groups"].includes(saved.view)) {
 			try { window.sessionStorage.removeItem("unison.active-view"); } catch { /* Ignore storage restrictions. */ }
 			return;
 		}
@@ -1129,6 +1437,11 @@
 		}
 		if (saved.view === "search") {
 			if (saved.search) navigateToSearch(saved.search, false);
+			return;
+		}
+		if (saved.view === "group") {
+			if (saved.groupId) openGroup(saved.groupId);
+			else setView("groups");
 			return;
 		}
 		setView(saved.view);
@@ -1377,6 +1690,7 @@
 			Promise.allSettled([loadMyProfile(), refreshSupabaseFeed(), refreshGroupMemberships(), refreshStories(), refreshPeople(), refreshFriends(), refreshNotifications()]).then((results) => {
 				if (results.some((result) => result.status === "rejected")) showToast("You are signed in, but some profile or feed data could not load.");
 			});
+			if (pendingInviteCode) redeemPendingInvite();
 		} catch (error) {
 			message.textContent = error.message || "We couldn’t sign you in. Check your details and try again.";
 			showToast(error.message);
@@ -1488,34 +1802,195 @@
 		}
 	});
 	const createGroupBtn = document.querySelector("#create-group-btn");
-	if (createGroupBtn) {
-		createGroupBtn.addEventListener("click", () => {
-			if (!requireSignedIn()) return;
-			if (!window.UnisonApi.isConfigured()) { showToast("Connect Supabase to create groups."); return; }
-			if (groupDialog && !groupDialog.open) groupDialog.showModal();
-		});
+	const groupsCreateBtn = document.querySelector("#groups-create-btn");
+	function openGroupDialog() {
+		if (!requireSignedIn()) return;
+		if (!window.UnisonApi.isConfigured()) { showToast("Connect Supabase to create groups."); return; }
+		populateGroupCategories();
+		if (groupDialog && !groupDialog.open) groupDialog.showModal();
 	}
+	if (createGroupBtn) createGroupBtn.addEventListener("click", openGroupDialog);
+	if (groupsCreateBtn) groupsCreateBtn.addEventListener("click", openGroupDialog);
 	if (groupForm) {
 		groupForm.addEventListener("submit", async (event) => {
 			event.preventDefault();
 			if (!requireSignedIn()) return;
 			const nameInput = document.querySelector("#group-name");
 			const descInput = document.querySelector("#group-description");
-			const name = nameInput?.value || "";
-			const description = descInput?.value || "";
+			const categoryInput = document.querySelector("#group-category");
+			const privacyInput = document.querySelector("#group-privacy");
+			const avatarInput = document.querySelector("#group-avatar-file");
+			const coverInput = document.querySelector("#group-cover-file");
 			try {
-				await window.UnisonApi.createGroup({ name, description });
+				await window.UnisonApi.createGroup({
+					name: nameInput?.value || "",
+					description: descInput?.value || "",
+					category: categoryInput?.value || "General",
+					privacy: privacyInput?.value || "public",
+					avatarFile: avatarInput?.files?.[0] || null,
+					coverFile: coverInput?.files?.[0] || null
+				});
 				showToast("Group created.");
 				if (groupDialog) groupDialog.close();
 				if (nameInput) nameInput.value = "";
 				if (descInput) descInput.value = "";
+				if (avatarInput) avatarInput.value = "";
+				if (coverInput) coverInput.value = "";
 				await refreshGroupMemberships();
-				await refreshSearchGroups("");
+				if (currentView === "groups") await renderGroupsHub();
 			} catch (error) {
 				showToast(error.message);
 			}
 		});
 	}
+
+	// 05b. Groups hub, group page, and moderation handlers
+	const groupsSearch = document.querySelector("#groups-search");
+	const groupsCategoryFilter = document.querySelector("#groups-category-filter");
+	let groupsFilterTimer = 0;
+	if (groupsSearch) groupsSearch.addEventListener("input", () => {
+		clearTimeout(groupsFilterTimer);
+		groupsFilterTimer = window.setTimeout(() => renderGroupsHub().catch((error) => showToast(error.message)), 250);
+	});
+	if (groupsCategoryFilter) groupsCategoryFilter.addEventListener("change", () => renderGroupsHub().catch((error) => showToast(error.message)));
+	document.querySelector("#group-page-back").addEventListener("click", () => setView("groups"));
+	document.addEventListener("click", async (event) => {
+		const joinButton = event.target.closest("button[data-group-id]");
+		if (joinButton) {
+			const shouldJoin = joinButton.getAttribute("aria-pressed") !== "true";
+			if (window.UnisonApi.isConfigured() && !requireSignedIn()) return;
+			try {
+				if (window.UnisonApi.isConfigured()) {
+					if (shouldJoin) {
+						const status = await window.UnisonApi.joinGroup(joinButton.dataset.groupId);
+						showToast(status === "pending" ? "Join request sent for approval." : "You joined the group.");
+					} else {
+						await window.UnisonApi.leaveGroup(joinButton.dataset.groupId);
+						showToast("You left the group.");
+					}
+				} else if (shouldJoin) demoJoinedGroups.add(joinButton.dataset.groupId);
+				else demoJoinedGroups.delete(joinButton.dataset.groupId);
+				await refreshGroupMemberships();
+				if (window.UnisonApi.isConfigured() && activeGroupId === joinButton.dataset.groupId && currentView === "group") await openGroup(activeGroupId);
+			} catch (error) {
+				showToast(error.message);
+			}
+			return;
+		}
+		const card = event.target.closest("[data-open-group]");
+		if (card) openGroup(card.dataset.openGroup);
+	});
+	document.querySelector("#group-join").addEventListener("click", async () => {
+		if (!activeGroupId) return;
+		try {
+			const status = await window.UnisonApi.joinGroup(activeGroupId);
+			showToast(status === "pending" ? "Join request sent for approval." : "You joined the group.");
+			await openGroup(activeGroupId);
+		} catch (error) {
+			showToast(error.message);
+		}
+	});
+	document.querySelector("#group-manage-toggle").addEventListener("click", () => {
+		const admin = document.querySelector("#group-admin");
+		admin.hidden = !admin.hidden;
+		document.querySelector("#group-manage-toggle").textContent = admin.hidden ? "Manage" : "Hide management";
+	});
+	document.querySelector("#group-invite-copy").addEventListener("click", async () => {
+		const link = document.querySelector("#group-invite-link").value;
+		if (!link) return showToast("Generate a link first.");
+		try {
+			await navigator.clipboard.writeText(link);
+			showToast("Invite link copied.");
+		} catch {
+			showToast("Copy the invite link manually.");
+		}
+	});
+	document.querySelector("#group-invite-regenerate").addEventListener("click", async () => {
+		if (!activeGroupId) return;
+		try {
+			const code = await window.UnisonApi.regenerateInviteCode(activeGroupId);
+			activeGroup.invite_code = code;
+			const link = document.querySelector("#group-invite-link");
+			link.value = `${location.origin}${location.pathname}#invite/${code}`;
+			link.placeholder = "";
+			showToast("New invite link ready.");
+		} catch (error) {
+			showToast(error.message);
+		}
+	});
+	document.querySelector("#group-admin").addEventListener("click", async (event) => {
+		const button = event.target.closest("button[data-member-action]");
+		if (!button || !activeGroupId) return;
+		const row = button.closest("[data-member-id]");
+		const userId = row?.dataset.memberId;
+		if (!userId) return;
+		button.disabled = true;
+		try {
+			switch (button.dataset.memberAction) {
+				case "approve":
+					await window.UnisonApi.setGroupMemberStatus(activeGroupId, userId, "approved");
+					showToast("Member approved.");
+					break;
+				case "decline":
+					await window.UnisonApi.removeGroupMember(activeGroupId, userId);
+					showToast("Request declined.");
+					break;
+				case "promote":
+					await window.UnisonApi.setGroupMemberRole(activeGroupId, userId, "admin");
+					showToast("Member is now an admin.");
+					break;
+				case "demote":
+					await window.UnisonApi.setGroupMemberRole(activeGroupId, userId, "member");
+					showToast("Admin access removed.");
+					break;
+				case "remove":
+					await window.UnisonApi.removeGroupMember(activeGroupId, userId);
+					showToast("Member removed.");
+					break;
+			}
+			groupMembers = await window.UnisonApi.listGroupMembers(activeGroupId).catch(() => groupMembers);
+			renderGroupMembers();
+			renderGroupDetail();
+		} catch (error) {
+			showToast(error.message);
+		} finally {
+			button.disabled = false;
+		}
+	});
+	document.querySelector("#group-photo-input").addEventListener("change", () => {
+		const file = document.querySelector("#group-photo-input").files?.[0];
+		const preview = document.querySelector("#group-photo-preview");
+		const image = document.querySelector("#group-photo-preview-image");
+		if (!file) { preview.hidden = true; return; }
+		image.src = URL.createObjectURL(file);
+		preview.hidden = false;
+	});
+	document.querySelector("#group-post-form").addEventListener("click", (event) => {
+		if (event.target.closest("[data-group-photo]")) document.querySelector("#group-photo-input").click();
+		if (event.target.closest("[data-remove-group-photo]")) {
+			document.querySelector("#group-photo-input").value = "";
+			document.querySelector("#group-photo-preview").hidden = true;
+		}
+	});
+	document.querySelector("#group-post-form").addEventListener("submit", async (event) => {
+		event.preventDefault();
+		if (!activeGroupId) return;
+		const textarea = document.querySelector("#group-post-text");
+		const photo = document.querySelector("#group-photo-input").files?.[0] || null;
+		const status = document.querySelector("#group-post-status");
+		try {
+			await window.UnisonApi.createPost({ text: textarea.value, scope: "group", visibility: "public", imageFile: photo, groupId: activeGroupId });
+			textarea.value = "";
+			document.querySelector("#group-photo-input").value = "";
+			document.querySelector("#group-photo-preview").hidden = true;
+			status.hidden = true;
+			showToast("Posted to the group.");
+			await refreshGroupFeed();
+		} catch (error) {
+			status.hidden = false;
+			status.textContent = error.message;
+		}
+	});
 	document.querySelectorAll("[data-coming-soon]").forEach((button) => button.addEventListener("click", () => showToast("That section is not available yet.")));
 	document.querySelectorAll("[data-scroll-to]").forEach((button) => button.addEventListener("click", () => {
 		document.querySelector(`#${button.dataset.scrollTo}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -1704,27 +2179,15 @@
 		const person = event.target.closest(".search-person-profile");
 		if (person) openPublicProfile(person.dataset.profileId, person.dataset.profileHandle);
 	});
-	document.querySelector("#search-groups-list").addEventListener("click", async (event) => {
-		const button = event.target.closest("button[data-group-id]");
-		if (!button) return;
-		const shouldJoin = button.getAttribute("aria-pressed") !== "true";
-		if (window.UnisonApi.isConfigured() && !requireSignedIn()) return;
-		try {
-			if (window.UnisonApi.isConfigured()) await window.UnisonApi.toggleGroupMembership(button.dataset.groupId, shouldJoin);
-			else if (shouldJoin) demoJoinedGroups.add(button.dataset.groupId);
-			else demoJoinedGroups.delete(button.dataset.groupId);
-			setGroupButton(button, shouldJoin);
-		} catch (error) {
-			showToast(error.message);
-		}
-	});
-	window.addEventListener("popstate", restoreSearchRoute);
-	window.addEventListener("hashchange", restoreSearchRoute);
+	window.addEventListener("popstate", () => { restoreSearchRoute(); restoreInviteRoute(); });
+	window.addEventListener("hashchange", () => { restoreSearchRoute(); restoreInviteRoute(); });
 	restoreSearchRoute();
+	restoreInviteRoute();
 	restoreSavedView();
 
-	function postDataForElement(postElement) {
-		return feedPosts.find((post) => post.id
+	function postDataForElement(postElement, posts = feedPosts) {
+		if (!postElement) return undefined;
+		return posts.find((post) => post.id
 			? post.id === postElement.dataset.postId
 			: post.handle === postElement.dataset.author);
 	}
@@ -1805,7 +2268,7 @@
 	});
 
 	// 04. Post actions and composer
-	feed.addEventListener("click", async (event) => {
+	async function handlePostActions(event, posts, container) {
 		const profileLink = event.target.closest("[data-profile-link]");
 		if (profileLink) {
 			await openPublicProfile(profileLink.dataset.profileId, profileLink.dataset.profileHandle);
@@ -1816,16 +2279,40 @@
 			const post = ownerAction.closest(".post");
 			const menu = ownerAction.closest("[data-owner-menu]");
 			if (menu) menu.hidden = true;
-			if (!post || post.dataset.userId !== window.UnisonAuth.getUser()?.id) return showToast("You can only manage your own posts.");
+			const postData = postDataForElement(post, posts);
+			const isOwner = Boolean(post && window.UnisonAuth.getUser() && post.dataset.userId === window.UnisonAuth.getUser()?.id);
+			if (ownerAction.dataset.ownerAction === "pin") {
+				if (!postData?.canModerate) return showToast("Only group admins can pin posts.");
+				if (!post.dataset.postId || !window.UnisonApi.isConfigured()) return showToast("This post cannot be pinned.");
+				ownerAction.disabled = true;
+				try {
+					const next = !postData.pinned;
+					await window.UnisonApi.setPostPinned(post.dataset.postId, next);
+					postData.pinned = next;
+					ownerAction.textContent = next ? "Unpin post" : "Pin post";
+					const badge = post.querySelector('[data-field="pinned-badge"]');
+					post.classList.toggle("pinned", next);
+					if (badge) badge.hidden = !next;
+					if (container === groupFeed) renderGroupFeed();
+					showToast(next ? "Post pinned." : "Post unpinned.");
+				} catch (error) {
+					showToast(error.message);
+				} finally {
+					ownerAction.disabled = false;
+				}
+				return;
+			}
+			if (!isOwner) return showToast("You can only manage your own posts.");
 			if (ownerAction.dataset.ownerAction !== "delete") return;
 			if (!post.dataset.postId || !window.UnisonApi.isConfigured()) return showToast("Only your saved posts can be deleted.");
 			if (!window.confirm("Delete this post? This cannot be undone.")) return;
 			ownerAction.disabled = true;
 			try {
 				await window.UnisonApi.deletePost(post.dataset.postId);
-				feedPosts = feedPosts.filter((item) => item.id !== post.dataset.postId);
+				const index = posts.indexOf(postData);
+				if (index >= 0) posts.splice(index, 1);
 				post.remove();
-				applyFilters();
+				if (container === feed) applyFilters();
 				showToast("Post deleted.");
 			} catch (error) {
 				showToast(error.message);
@@ -1837,7 +2324,7 @@
 		const button = event.target.closest("button[data-action]");
 		if (!button) return;
 		const post = button.closest(".post");
-		const postData = postDataForElement(post);
+		const postData = postDataForElement(post, posts);
 		if (button.dataset.action === "like") {
 			const liked = button.getAttribute("aria-pressed") === "true";
 			if (window.UnisonApi.isConfigured()) {
@@ -1889,12 +2376,15 @@
 		} else if (button.dataset.action === "menu") {
 			const menu = post.querySelector("[data-owner-menu]");
 			const expanded = button.getAttribute("aria-expanded") === "true";
-			feed.querySelectorAll("[data-owner-menu]").forEach((item) => { item.hidden = true; });
-			feed.querySelectorAll('.post-menu[data-action="menu"]').forEach((item) => item.setAttribute("aria-expanded", "false"));
+			container.querySelectorAll("[data-owner-menu]").forEach((item) => { item.hidden = true; });
+			container.querySelectorAll('.post-menu[data-action="menu"]').forEach((item) => item.setAttribute("aria-expanded", "false"));
 			menu.hidden = expanded;
 			button.setAttribute("aria-expanded", String(!expanded));
 		}
-	});
+	}
+
+	feed.addEventListener("click", (event) => handlePostActions(event, feedPosts, feed));
+	if (groupFeed) groupFeed.addEventListener("click", (event) => handlePostActions(event, groupPosts, groupFeed));
 
 	document.querySelector("#public-profile-posts").addEventListener("click", async (event) => {
 		const profileLink = event.target.closest("[data-profile-link]");

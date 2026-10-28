@@ -157,6 +157,14 @@ async function profileAvatarUrl(value) {
 	return oldPostMediaPath ? privateMediaUrl(oldPostMediaPath) : source;
 }
 
+function groupMediaUrl(value) {
+	const source = String(value || "").trim();
+	if (!source) return "";
+	const path = storageObjectPath("group-media", source);
+	if (!path) return source.startsWith("http") ? source : "";
+	return `${supabaseUrl}/storage/v1/object/public/group-media/${path.split("/").map(encodeURIComponent).join("/")}`;
+}
+
 async function mapPost(row) {
 	const profile = row.profiles || {};
 	const likes = row.post_likes || [];
@@ -186,15 +194,18 @@ async function mapPost(row) {
 		liked: Boolean(supabaseSession && likes.some((like) => like.user_id === supabaseSession.user.id)),
 		saved: Boolean(supabaseSession && savedPosts.some((saved) => saved.user_id === supabaseSession.user.id)),
 		createdAt: row.created_at,
+		groupId: row.group_id || "",
+		pinned: Boolean(row.pinned),
 		local: row.scope === "townsquare",
 		community: row.scope === "community",
+		group: row.scope === "group",
 		localType: row.scope === "townsquare" ? "Neighborhood post" : row.scope === "community" ? "Community post" : ""
 	};
 }
 
 function postSelect() {
 	const fields = [
-		"id", "user_id", "body", "scope", "visibility", "image_path", "created_at",
+		"id", "user_id", "body", "scope", "visibility", "image_path", "group_id", "pinned", "created_at",
 		"profiles!posts_user_id_fkey(display_name,handle,avatar_url,avatar_border,profile_sticker)"
 	];
 	if (supabaseSession) fields.push("post_likes(user_id)", "post_comments(id)", "saved_posts(user_id)");
@@ -250,6 +261,7 @@ window.UnisonApi = Object.freeze({
 			if (!groupId) throw new Error("Group not specified.");
 			params.set("scope", "eq.group");
 			params.set("group_id", `eq.${groupId}`);
+			params.set("order", "pinned.desc,created_at.desc");
 		}
 		if (profileUserId) params.set("user_id", `eq.${profileUserId}`);
 		// Guest requests are always restricted to public posts at the API query level.
@@ -382,41 +394,196 @@ window.UnisonApi = Object.freeze({
 		return Promise.all(rows.map(async (profile) => ({ ...profile, avatar_url: await profileAvatarUrl(profile.avatar_url).catch(() => "") })));
 	},
 	async searchGroups(query) {
-		const safeQuery = String(query || "").replace(/[(),%_*]/g, " ").trim();
-		if (!safeQuery) return [];
-		const params = new URLSearchParams({
-			select: "id,name,description,owner_id,image_path,created_at",
-			order: "name.asc",
-			limit: "12",
-			or: `(name.ilike.*${safeQuery}*,description.ilike.*${safeQuery}*)`
-		});
-		return supabaseRequest(`groups?${params}`);
+		return this.listDiscoverGroups({ search: query });
 	},
-	async createGroup({ name, description = "", imagePath = null }) {
+	async listDiscoverGroups({ search = "", category = "", limit = 24 } = {}) {
+		const auth = Boolean(supabaseSession);
+		if (auth) await requireSession().catch(() => {});
+		const params = new URLSearchParams({
+			select: "id,name,description,image_path,cover_path,category,privacy,owner_id,created_at",
+			order: "created_at.desc",
+			limit: String(limit)
+		});
+		const safeSearch = String(search || "").replace(/[(),%_*]/g, " ").trim();
+		if (safeSearch) params.set("or", `(name.ilike.*${safeSearch}*,description.ilike.*${safeSearch}*)`);
+		if (category) params.set("category", `eq.${category}`);
+		const rows = await supabaseRequest(`groups?${params}`, { auth });
+		if (!rows.length) return [];
+		let counts = new Map();
+		try {
+			const memberships = await supabaseRequest(`groups_memberships?select=group_id&group_id=in.(${rows.map((row) => row.id).join(",")})`, { auth });
+			memberships.forEach((row) => counts.set(row.group_id, (counts.get(row.group_id) || 0) + 1));
+		} catch { /* Member counts are decorative. */ }
+		return rows.map((row) => ({ ...row, avatar: groupMediaUrl(row.image_path), cover: groupMediaUrl(row.cover_path), memberCount: counts.get(row.id) || 0 }));
+	},
+	async listMyGroups() {
+		const session = await requireSession();
+		const params = new URLSearchParams({
+			select: "group_id,role,status,created_at,groups(id,name,description,image_path,cover_path,category,privacy,owner_id,created_at)",
+			user_id: `eq.${session.user.id}`,
+			order: "created_at.desc"
+		});
+		const rows = await supabaseRequest(`groups_memberships?${params}`, { auth: true });
+		return rows.filter((row) => row.groups).map((row) => ({
+			...row.groups,
+			role: row.role,
+			status: row.status,
+			avatar: groupMediaUrl(row.groups.image_path),
+			cover: groupMediaUrl(row.groups.cover_path)
+		}));
+	},
+	async createGroup({ name, description = "", category = "General", privacy = "public", avatarFile = null, coverFile = null }) {
 		const session = await requireSession();
 		const groupName = String(name || "").trim();
 		if (!groupName) throw new TypeError("Group name is required.");
-		const groupId = groupName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
-		if (!groupId) throw new TypeError("Invalid group name.");
-		const params = new URLSearchParams({ select: "id,name,description,owner_id,image_path,created_at" });
+		const baseId = groupName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+		if (!baseId) throw new TypeError("Invalid group name.");
+		const groupId = `${baseId}-${Math.random().toString(36).slice(2, 6)}`;
+		const [imagePath, coverPath] = await Promise.all([
+			avatarFile ? this.uploadGroupImage(avatarFile) : Promise.resolve(null),
+			coverFile ? this.uploadGroupImage(coverFile) : Promise.resolve(null)
+		]);
+		const params = new URLSearchParams({ select: "id,name,description,image_path,cover_path,category,privacy,owner_id,created_at" });
 		const rows = await supabaseRequest(`groups?${params}`, {
 			method: "POST", auth: true,
 			headers: { Prefer: "return=representation" },
-			body: { id: groupId, name: groupName, description: String(description || "").trim(), owner_id: session.user.id, image_path: imagePath }
+			body: {
+				id: groupId,
+				name: groupName,
+				description: String(description || "").trim(),
+				category: category || "General",
+				privacy: privacy === "private" ? "private" : "public",
+				owner_id: session.user.id,
+				image_path: imagePath,
+				cover_path: coverPath
+			}
 		});
 		await supabaseRequest("groups_memberships", {
 			method: "POST", auth: true,
 			headers: { Prefer: "resolution=ignore-duplicates" },
-			body: { group_id: groupId, user_id: session.user.id }
+			body: { group_id: groupId, user_id: session.user.id, role: "owner", status: "approved" }
+		});
+		return { ...rows[0], avatar: groupMediaUrl(rows[0].image_path), cover: groupMediaUrl(rows[0].cover_path) };
+	},
+	async getGroupDetail(groupId) {
+		const auth = Boolean(supabaseSession);
+		if (auth) await requireSession().catch(() => {});
+		const params = new URLSearchParams({ select: "id,name,description,image_path,cover_path,category,privacy,owner_id,invite_code,created_at", id: `eq.${groupId}`, limit: "1" });
+		const rows = await supabaseRequest(`groups?${params}`, { auth });
+		if (!rows[0]) return null;
+		return { ...rows[0], avatar: groupMediaUrl(rows[0].image_path), cover: groupMediaUrl(rows[0].cover_path) };
+	},
+	async getGroup(groupId) {
+		return this.getGroupDetail(groupId);
+	},
+	async updateGroup(groupId, patch) {
+		await requireSession();
+		const params = new URLSearchParams({ id: `eq.${groupId}`, select: "id,name,description,image_path,cover_path,category,privacy,owner_id,invite_code" });
+		const rows = await supabaseRequest(`groups?${params}`, {
+			method: "PATCH", auth: true,
+			headers: { Prefer: "return=representation" },
+			body: patch
 		});
 		return rows[0];
 	},
-	async getGroup(groupId) {
-		const auth = Boolean(supabaseSession);
-		if (auth) await requireSession().catch(() => {});
-		const params = new URLSearchParams({ select: "id,name,description,owner_id,image_path,created_at", id: `eq.${groupId}`, limit: "1" });
-		const rows = await supabaseRequest(`groups?${params}`, { auth });
-		return rows[0] || null;
+	async listGroupMembers(groupId) {
+		await requireSession();
+		const params = new URLSearchParams({
+			select: "user_id,role,status,created_at,profiles(handle,display_name,avatar_url,bio)",
+			group_id: `eq.${groupId}`,
+			order: "created_at.asc"
+		});
+		const rows = await supabaseRequest(`groups_memberships?${params}`, { auth: true });
+		return Promise.all(rows.map(async (row) => ({
+			userId: row.user_id,
+			role: row.role,
+			status: row.status,
+			handle: row.profiles?.handle || "",
+			name: row.profiles?.display_name || "Unison member",
+			bio: row.profiles?.bio || "",
+			avatar: await profileAvatarUrl(row.profiles?.avatar_url).catch(() => "")
+		})));
+	},
+	async joinGroup(groupId) {
+		const session = await requireSession();
+		const group = await this.getGroupDetail(groupId);
+		if (!group) throw new Error("This group could not be found.");
+		const status = group.privacy === "private" ? "pending" : "approved";
+		const params = new URLSearchParams({ on_conflict: "group_id,user_id" });
+		await supabaseRequest(`groups_memberships?${params}`, {
+			method: "POST", auth: true,
+			headers: { Prefer: "resolution=ignore-duplicates,return=minimal" },
+			body: { group_id: groupId, user_id: session.user.id, role: "member", status }
+		});
+		return status;
+	},
+	async leaveGroup(groupId) {
+		const session = await requireSession();
+		const params = new URLSearchParams({ group_id: `eq.${groupId}`, user_id: `eq.${session.user.id}` });
+		await supabaseRequest(`groups_memberships?${params}`, { method: "DELETE", auth: true });
+	},
+	async setGroupMemberStatus(groupId, userId, status) {
+		await requireSession();
+		const params = new URLSearchParams({ group_id: `eq.${groupId}`, user_id: `eq.${userId}` });
+		await supabaseRequest(`groups_memberships?${params}`, {
+			method: "PATCH", auth: true,
+			headers: { Prefer: "return=minimal" },
+			body: { status }
+		});
+	},
+	async setGroupMemberRole(groupId, userId, role) {
+		await requireSession();
+		const params = new URLSearchParams({ group_id: `eq.${groupId}`, user_id: `eq.${userId}` });
+		await supabaseRequest(`groups_memberships?${params}`, {
+			method: "PATCH", auth: true,
+			headers: { Prefer: "return=minimal" },
+			body: { role }
+		});
+	},
+	async removeGroupMember(groupId, userId) {
+		await requireSession();
+		const params = new URLSearchParams({ group_id: `eq.${groupId}`, user_id: `eq.${userId}` });
+		await supabaseRequest(`groups_memberships?${params}`, { method: "DELETE", auth: true });
+	},
+	async regenerateInviteCode(groupId) {
+		await requireSession();
+		const code = (crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}`).replace(/-/g, "").slice(0, 12);
+		const rows = await supabaseRequest(`groups?id=eq.${groupId}&select=id,invite_code`, {
+			method: "PATCH", auth: true,
+			headers: { Prefer: "return=representation" },
+			body: { invite_code: code }
+		});
+		return rows[0]?.invite_code || code;
+	},
+	async joinGroupWithInvite(code) {
+		await requireSession();
+		return supabaseRequest("rpc/join_group_with_invite", { method: "POST", auth: true, body: { invite: code } });
+	},
+	async setPostPinned(postId, pinned) {
+		await requireSession();
+		const rows = await supabaseRequest(`posts?id=eq.${postId}&select=id,pinned`, {
+			method: "PATCH", auth: true,
+			headers: { Prefer: "return=representation" },
+			body: { pinned }
+		});
+		return rows[0];
+	},
+	async uploadGroupImage(file) {
+		const session = await requireSession();
+		const extension = (file.name.split(".").pop() || "jpg").replace(/[^a-zA-Z0-9]/g, "") || "jpg";
+		const path = `${session.user.id}/group-${crypto.randomUUID()}.${extension}`;
+		const response = await fetch(configuredUrl(`storage/v1/object/group-media/${path}`), {
+			method: "POST",
+			headers: {
+				apikey: supabasePublishableKey,
+				Authorization: `Bearer ${session.access_token}`,
+				"Content-Type": file.type || "application/octet-stream",
+				"x-upsert": "false"
+			},
+			body: file
+		});
+		await readResponse(response);
+		return path;
 	},
 	async getMyProfile() {
 		const session = await requireSession();
@@ -526,21 +693,12 @@ window.UnisonApi = Object.freeze({
 		return supabaseRequest(`follows?${params}`, { method: "DELETE", auth: true });
 	},
 	async toggleGroupMembership(groupId, shouldJoin) {
-		const session = await requireSession();
-		const params = new URLSearchParams({ group_id: `eq.${groupId}`, user_id: `eq.${session.user.id}` });
-		if (shouldJoin) {
-			params.set("on_conflict", "group_id,user_id");
-			return supabaseRequest(`groups_memberships?${params}`, {
-				method: "POST", auth: true,
-				headers: { Prefer: "resolution=ignore-duplicates,return=minimal" },
-				body: { group_id: groupId, user_id: session.user.id }
-			});
-		}
-		return supabaseRequest(`groups_memberships?${params}`, { method: "DELETE", auth: true });
+		if (shouldJoin) return this.joinGroup(groupId);
+		return this.leaveGroup(groupId);
 	},
 	async listGroupMemberships() {
 		const session = await requireSession();
-		return supabaseRequest(`groups_memberships?select=group_id&user_id=eq.${session.user.id}`, { auth: true });
+		return supabaseRequest(`groups_memberships?select=group_id,role,status&user_id=eq.${session.user.id}`, { auth: true });
 	},
 	async listStories() {
 		await requireSession();

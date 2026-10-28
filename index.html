@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=update-39">
+  <link rel="stylesheet" href="style.css?v=update-40">
 </head>
 <body>
   <!-- 02. Global navigation -->
@@ -57,7 +57,7 @@
         <button class="nav-button" type="button" data-view="messages"><span class="nav-icon" aria-hidden="true">✉</span><span>Messages</span></button>
         <button class="nav-button" type="button" data-view="notifications"><span class="nav-icon" aria-hidden="true">🔔</span><span>Notifications</span></button>
         <button class="nav-button" type="button" data-scroll-to="contacts-panel"><span class="nav-icon" aria-hidden="true">♧</span><span>Friends</span></button>
-        <button class="nav-button" type="button" data-scroll-to="groups-panel"><span class="nav-icon" aria-hidden="true">♧</span><span>Groups</span></button>
+        <button class="nav-button" type="button" data-view="groups"><span class="nav-icon" aria-hidden="true">♧</span><span>Groups</span></button>
         <button class="nav-button" type="button" data-view="pages"><span class="nav-icon" aria-hidden="true">⚑</span><span>Pages</span></button>
         <button class="nav-button" type="button" data-view="saved"><span class="nav-icon" aria-hidden="true">♡</span><span>Saved</span></button>
       </nav>
@@ -167,6 +167,61 @@
         </div>
       </section>
 
+      <section class="groups-page" id="groups-page" hidden aria-label="Groups">
+        <div class="groups-toolbar"><h2 class="groups-heading">Your groups</h2><button class="dialog-primary" id="groups-create-btn" type="button">Create group</button></div>
+        <div class="groups-mine" id="groups-mine"></div>
+        <div class="groups-toolbar"><h2 class="groups-heading">Discover groups</h2></div>
+        <div class="groups-filters">
+          <input id="groups-search" class="groups-search" type="search" placeholder="Search groups by name or topic" aria-label="Search groups">
+          <label class="groups-category-label">Category<select id="groups-category-filter" aria-label="Filter groups by category"><option value="">All categories</option></select></label>
+        </div>
+        <div class="groups-discover" id="groups-discover"></div>
+      </section>
+
+      <section class="group-page" id="group-page" hidden aria-label="Group">
+        <button class="text-link profile-page-back" id="group-page-back" type="button">Back to groups</button>
+        <div class="group-cover" id="group-cover" hidden><img id="group-cover-image" alt=""></div>
+        <div class="group-page-content">
+          <div class="group-page-header">
+            <span class="group-avatar-frame"><img class="group-avatar" id="group-avatar" alt=""></span>
+            <div class="group-page-identity">
+              <p class="dialog-eyebrow" id="group-privacy-label">PUBLIC GROUP</p>
+              <h2 id="group-page-name">Group</h2>
+              <p class="group-page-meta" id="group-page-meta"></p>
+            </div>
+            <div class="group-page-actions">
+              <button class="join-button" id="group-join" type="button" hidden>Join group</button>
+              <button class="follow" id="group-manage-toggle" type="button" hidden>Manage</button>
+            </div>
+          </div>
+          <p class="group-page-description" id="group-page-description"></p>
+          <div class="group-invite-box" id="group-invite-box" hidden>
+            <span class="group-invite-label">Invite link</span>
+            <input id="group-invite-link" type="text" readonly aria-label="Group invite link">
+            <button class="dialog-primary" id="group-invite-copy" type="button">Copy link</button>
+            <button class="text-link" id="group-invite-regenerate" type="button">New link</button>
+          </div>
+          <section class="group-admin" id="group-admin" hidden>
+            <h3 class="group-admin-heading">Join requests <span class="group-count" id="group-request-count">0</span></h3>
+            <div class="group-requests" id="group-requests"></div>
+            <h3 class="group-admin-heading">Members <span class="group-count" id="group-member-count">0</span></h3>
+            <div class="group-members" id="group-members"></div>
+          </section>
+          <form class="group-composer" id="group-post-form">
+            <textarea id="group-post-text" maxlength="500" rows="2" placeholder="Share something with this group…" aria-label="Write a group post"></textarea>
+            <div class="group-composer-actions">
+              <button class="composer-tool" type="button" data-group-photo>▧ &nbsp;Photo</button>
+              <button class="post-button" type="submit">Post to group</button>
+            </div>
+            <input id="group-photo-input" type="file" accept="image/*" hidden>
+            <div class="photo-preview" id="group-photo-preview" hidden><img id="group-photo-preview-image" alt="Selected group post photo"><button class="remove-photo" type="button" data-remove-group-photo aria-label="Remove photo">×</button></div>
+            <p class="post-status" id="group-post-status" role="status" aria-live="polite" hidden></p>
+          </form>
+          <h3 class="profile-posts-heading">Group posts</h3>
+          <section class="group-feed" id="group-feed" aria-label="Group posts"></section>
+        </div>
+      </section>
+
       <form class="composer" id="post-form">
         <div class="composer-main"><img class="avatar" id="composer-avatar" src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&q=80" alt=""><textarea id="post-text" maxlength="500" placeholder="What's on your mind, Alex?" aria-label="Write a post"></textarea></div>
         <div class="photo-preview" id="photo-preview" hidden><img id="photo-preview-image" alt="Selected post attachment"><button class="remove-photo" type="button" data-remove-photo aria-label="Remove photo">×</button></div>
@@ -208,6 +263,7 @@
             <div class="post-identity"><div class="name-line"><button class="post-profile-link" type="button" data-profile-link><span class="post-name" data-field="author"></span><span class="post-handle" data-field="handle"></span></button><span class="post-time" data-field="time"></span></div></div>
             <div class="post-menu-wrap" data-owner-menu-wrap hidden><button class="post-menu" type="button" data-action="menu" aria-label="More post options" aria-expanded="false">···</button><div class="post-menu-options" data-owner-menu hidden><button type="button" class="post-delete-action" data-owner-action="delete">Delete post</button></div></div>
           </header>
+          <div class="pinned-badge" data-field="pinned-badge" hidden>📌 Pinned post</div>
           <div class="local-meta" data-field="local-meta"><span>⌖ Townsquare</span> · <span data-field="local-type"></span></div>
           <p class="post-copy" data-field="text"></p>
           <img class="post-image" data-field="image" alt="" loading="lazy">
@@ -224,7 +280,7 @@
 
     <!-- 05. Community suggestions and contacts -->
     <aside class="right-rail" aria-label="Community">
-      <section class="rail-panel"><h2 class="panel-title">Suggested for you <button class="text-link" type="button" data-scroll-to="groups-panel">See all</button></h2><div class="suggestion-list">
+      <section class="rail-panel"><h2 class="panel-title">Suggested for you <button class="text-link" type="button" data-view="groups">See all</button></h2><div class="suggestion-list">
         <div class="suggestion"><img src="https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=90&q=75" alt=""><div class="suggestion-copy"><strong>Nature & Adventure</strong><span>Group · 125K members</span></div><button class="join-button" type="button" data-group-id="nature-adventure" aria-pressed="false">Join</button></div>
         <div class="suggestion"><img src="https://images.unsplash.com/photo-1511512578047-dfb367046420?auto=format&fit=crop&w=90&q=75" alt=""><div class="suggestion-copy"><strong>Tech & Innovation</strong><span>Group · 98K members</span></div><button class="join-button" type="button" data-group-id="tech-innovation" aria-pressed="false">Join</button></div>
         <div class="suggestion"><img src="https://images.unsplash.com/photo-1511512578047-dfb367046420?auto=format&fit=crop&w=90&q=75&sat=-70" alt=""><div class="suggestion-copy"><strong>Gaming Community</strong><span>Group · 210K members</span></div><button class="join-button" type="button" data-group-id="gaming-community" aria-pressed="false">Join</button></div>
@@ -259,7 +315,7 @@
       </div></section>
       <section class="contact-panel"><h2 class="contact-heading">Birthdays</h2><div class="birthday-row"><span class="birthday-icon" aria-hidden="true">♙</span><img class="avatar" src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=70&q=70" alt=""><div><strong>Sofia Martinez</strong><span>Today</span></div></div></section>
       <section class="contact-panel"><h2 class="contact-heading">Sponsored</h2><img class="sponsored-image" src="https://images.unsplash.com/photo-1500375592092-40eb2168fd21?auto=format&fit=crop&w=400&q=80" alt="Sunny tropical beach"><p class="sponsored-title">Escape to Paradise</p><p class="sponsored-copy">Discover amazing destinations and plan your next adventure.</p></section>
-      <section class="contact-panel"><h2 class="contact-heading">Quick links</h2><div class="quick-grid"><button class="quick-link" type="button" data-focus-composer>▧ Create post</button><button class="quick-link" type="button" data-coming-soon>▣ Create event</button><button class="quick-link" type="button" data-coming-soon>▤ Marketplace</button><button class="quick-link" type="button" data-coming-soon>♧ Groups</button><button class="quick-link" type="button" data-coming-soon>ⓘ Help</button><button class="quick-link" type="button" data-coming-soon>⚙ Settings</button></div></section>
+      <section class="contact-panel"><h2 class="contact-heading">Quick links</h2><div class="quick-grid"><button class="quick-link" type="button" data-focus-composer>▧ Create post</button><button class="quick-link" type="button" data-coming-soon>▣ Create event</button><button class="quick-link" type="button" data-coming-soon>▤ Marketplace</button><button class="quick-link" type="button" data-view="groups">♧ Groups</button><button class="quick-link" type="button" data-coming-soon>ⓘ Help</button><button class="quick-link" type="button" data-coming-soon>⚙ Settings</button></div></section>
     </aside>
   </div>
 
@@ -276,6 +332,7 @@
     <button class="nav-button" type="button" data-view="my-profile" aria-label="My profile"><span class="nav-icon" aria-hidden="true">◉</span><span class="nav-label">Profile</span></button>
     <button class="nav-button" type="button" data-view="messages" aria-label="Messages"><span class="nav-icon" aria-hidden="true">✉</span><span class="nav-label">Messages</span></button>
     <button class="nav-button" type="button" data-view="notifications" aria-label="Notifications"><span class="nav-icon" aria-hidden="true">🔔</span><span class="nav-label">Notifications</span></button>
+    <button class="nav-button" type="button" data-view="groups" aria-label="Groups"><span class="nav-icon" aria-hidden="true">♧</span><span class="nav-label">Groups</span></button>
     <button class="nav-button" type="button" data-view="pages" aria-label="Pages"><span class="nav-icon" aria-hidden="true">⚑</span><span class="nav-label">Pages</span></button>
     <button class="nav-button" type="button" data-view="saved" aria-label="Saved posts"><span class="nav-icon" aria-hidden="true">♡</span><span class="nav-label">Saved</span></button>
   </nav>
@@ -306,6 +363,10 @@
       <p class="dialog-copy">Start a community around a shared interest.</p>
       <label class="dialog-field">Group name<input id="group-name" type="text" maxlength="40" required></label>
       <label class="dialog-field">Description<textarea id="group-description" maxlength="200" rows="3"></textarea></label>
+      <label class="dialog-field">Category<select id="group-category" aria-label="Group category"></select></label>
+      <label class="dialog-field">Privacy<select id="group-privacy" aria-label="Group privacy"><option value="public">Public — anyone can join</option><option value="private">Private — approve join requests</option></select></label>
+      <label class="dialog-field">Group picture<input id="group-avatar-file" type="file" accept="image/*"></label>
+      <label class="dialog-field">Cover photo<input id="group-cover-file" type="file" accept="image/*"></label>
       <button class="dialog-primary" type="submit">Create group</button>
     </form>
   </dialog>
@@ -317,7 +378,7 @@
   <!-- 07. Application scripts -->
   <script src="supabase-config.js"></script>
   <script src="posts.js"></script>
-  <script src="api.js?v=update-39"></script>
-  <script src="script.js?v=update-39"></script>
+  <script src="api.js?v=update-40"></script>
+  <script src="script.js?v=update-40"></script>
 </body>
 </html>
