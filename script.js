@@ -1029,6 +1029,7 @@
 		input.placeholder = view === "townsquare" ? "Share something happening nearby..." : view === "community" ? "Share with the community..." : "What's on your mind, Alex?";
 		postScope.value = view === "community" ? "community" : "home";
 		document.querySelector("#post-destination").hidden = view === "townsquare" || view === "community";
+		document.querySelector("#post-audience").hidden = view === "community";
 		document.querySelectorAll("[data-view]").forEach((button) => button.classList.toggle("active", button.dataset.view === view));
 		document.querySelectorAll("[data-filter]").forEach((button) => {
 			const active = button.dataset.filter === (view === "my-posts" ? "mine" : "all");
@@ -1427,6 +1428,10 @@
 		input.focus();
 	}));
 	document.querySelector("[data-create-story]").addEventListener("click", () => storyInput.click());
+	// Community posts are public only, so hide the audience choice when targeting the community feed.
+	postScope.addEventListener("change", () => {
+		document.querySelector("#post-audience").hidden = postScope.value === "community";
+	});
 	storyInput.addEventListener("change", async () => {
 		const imageFile = storyInput.files[0];
 		if (!imageFile) return;
@@ -1999,7 +2004,8 @@
 		const user = window.UnisonAuth.getUser();
 		const metadata = user?.user_metadata || {};
 		const destination = currentView === "townsquare" ? "townsquare" : currentView === "community" ? "community" : postScope.value;
-		const visibility = postVisibility.value;
+		// Community posts are always public; the private option only applies to Home posts.
+		const visibility = destination === "community" ? "public" : postVisibility.value;
 		const postData = {
 			id: crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`,
 			author: currentProfile?.display_name || metadata.display_name || user?.email?.split("@")[0] || "Alex Morgan",

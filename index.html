@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=update-38">
+  <link rel="stylesheet" href="style.css?v=update-39">
 </head>
 <body>
   <!-- 02. Global navigation -->
@@ -173,7 +173,7 @@
         <div class="feeling-menu" id="feeling-menu" hidden><span>Add a feeling:</span><button type="button" data-feeling="😊 Feeling happy">😊</button><button type="button" data-feeling="🎉 Celebrating">🎉</button><button type="button" data-feeling="🌱 Feeling inspired">🌱</button><button type="button" data-feeling="☕ Taking it slow">☕</button></div>
         <input id="photo-input" type="file" accept="image/*" hidden>
         <input id="story-input" type="file" accept="image/*" hidden>
-        <div class="composer-footer"><div class="composer-tools"><button class="composer-tool" type="button" data-attach-photo aria-label="Add a photo">▧ &nbsp;Photo</button><button class="composer-tool" type="button" data-open-feelings aria-expanded="false">☺ &nbsp;Feeling</button><label class="post-destination" id="post-destination">Post to<select id="post-scope" aria-label="Post destination"><option value="home">My circle</option><option value="community">Community feed</option></select></label><label class="post-destination">Audience<select id="post-visibility" aria-label="Post audience" aria-describedby="post-audience-help"><option value="public">Public</option><option value="private">Private (only me)</option></select></label></div><button class="post-button" type="submit">Share post</button></div>
+        <div class="composer-footer"><div class="composer-tools"><button class="composer-tool" type="button" data-attach-photo aria-label="Add a photo">▧ &nbsp;Photo</button><button class="composer-tool" type="button" data-open-feelings aria-expanded="false">☺ &nbsp;Feeling</button><label class="post-destination" id="post-destination">Post to<select id="post-scope" aria-label="Post destination"><option value="home">My circle</option><option value="community">Community feed</option></select></label><label class="post-destination" id="post-audience">Audience<select id="post-visibility" aria-label="Post audience" aria-describedby="post-audience-help"><option value="public">Public</option><option value="private">Private (only me)</option></select></label></div><button class="post-button" type="submit">Share post</button></div>
         <p class="post-audience-help" id="post-audience-help">Public Home posts are visible to signed-in members; public Community posts are visible to everyone.</p>
         <p class="post-status" id="post-status" role="status" aria-live="polite" hidden></p>
       </form>
@@ -317,7 +317,7 @@
   <!-- 07. Application scripts -->
   <script src="supabase-config.js"></script>
   <script src="posts.js"></script>
-  <script src="api.js?v=update-38"></script>
-  <script src="script.js?v=update-38"></script>
+  <script src="api.js?v=update-39"></script>
+  <script src="script.js?v=update-39"></script>
 </body>
 </html>

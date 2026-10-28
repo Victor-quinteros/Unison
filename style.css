@@ -1821,10 +1821,11 @@ h1 {
 
 .post-image {
 	display: block;
-	width: 100%;
-	max-height: 290px;
+	width: auto;
+	height: auto;
+	max-width: 100%;
+	max-height: 420px;
 	border-radius: 6px;
-	object-fit: cover;
 	background: var(--surface-soft);
 }
 
@@ -2824,11 +2825,12 @@ h1 {
 
 .profile-post-card img {
 	display: block;
-	width: 100%;
+	width: auto;
+	height: auto;
+	max-width: 100%;
 	max-height: 240px;
 	margin-top: 8px;
 	border-radius: 5px;
-	object-fit: cover;
 }
 
 .profile-post-actions {
@@ -3143,7 +3145,7 @@ body.compact .post-copy {
 	}
 
 	.post-image {
-		max-height: 245px;
+		max-height: 320px;
 	}
 
 	.story {
