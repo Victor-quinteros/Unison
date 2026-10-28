@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=update-37">
+  <link rel="stylesheet" href="style.css?v=update-38">
 </head>
 <body>
   <!-- 02. Global navigation -->
@@ -26,8 +26,8 @@
       <div class="notification-menu-container">
         <button class="header-notifications" id="notifications-button" type="button" aria-haspopup="menu" aria-expanded="false" aria-controls="notifications-dropdown"><span class="bell" aria-hidden="true">🔔</span><span id="notifications-count" class="notification-badge" hidden>0</span></button>
         <div class="notifications-dropdown" id="notifications-dropdown" role="menu" aria-label="Notifications" hidden>
-          <div class="notifications-header"><p class="notifications-title">Notifications</p><button class="notifications-mark-all" id="mark-all-notifications-read" type="button">Mark all as read</button></div>
-          <div id="notifications-list" class="notifications-list"></div>
+          <div class="notifications-header"><p class="notifications-title">Notifications</p><button class="notifications-mark-all" id="notifications-dropdown-mark-all" type="button">Mark all as read</button></div>
+          <div id="notifications-dropdown-list" class="notifications-list"></div>
         </div>
       </div>
       <div class="account-menu-container">
@@ -151,7 +151,7 @@
       <section class="notifications-page settings-panel" id="notifications-page" hidden aria-labelledby="notifications-page-heading">
         <h2 id="notifications-page-heading">Notifications</h2>
         <p class="notifications-intro">Stay updated on what's happening in your circle.</p>
-        <div class="notifications-list" id="notifications-list"></div>
+        <div class="notifications-list" id="notifications-page-list"></div>
         <div class="notifications-actions"><button class="notifications-mark-all" id="mark-all-notifications-read" type="button">Mark all as read</button></div>
       </section>
 
@@ -317,7 +317,7 @@
   <!-- 07. Application scripts -->
   <script src="supabase-config.js"></script>
   <script src="posts.js"></script>
-  <script src="api.js?v=update-37"></script>
-  <script src="script.js?v=update-37"></script>
+  <script src="api.js?v=update-38"></script>
+  <script src="script.js?v=update-38"></script>
 </body>
 </html>

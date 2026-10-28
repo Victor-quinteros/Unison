@@ -696,6 +696,10 @@ main.public-profile-mode> :not(.page-heading):not(#public-profile-page) {
 	display: none;
 }
 
+main.notifications-mode> :not(.page-heading):not(#notifications-page) {
+	display: none;
+}
+
 .my-profile-page {
 	gap: 14px;
 	padding: 18px;

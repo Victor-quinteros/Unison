@@ -1000,6 +1000,7 @@
 		messagesPage.hidden = view !== "messages";
 		settingsPage.hidden = view !== "settings";
 		document.querySelector("#notifications-page").hidden = view !== "notifications";
+		document.querySelector("#home").classList.toggle("notifications-mode", view === "notifications");
 		if (view === "account") {
 			const user = window.UnisonAuth.getUser();
 			document.querySelector("#account-email").value = user?.email || "";
@@ -1543,7 +1544,7 @@
 		const dropdown = document.querySelector("#notifications-dropdown");
 		if (!dropdown.hidden) { dropdown.hidden = true; document.querySelector("#notifications-button").setAttribute("aria-expanded", "false"); }
 	});
-	document.querySelector("#mark-all-notifications-read").addEventListener("click", async (event) => {
+	document.querySelector("#notifications-dropdown-mark-all").addEventListener("click", async (event) => {
 		event.stopPropagation();
 		await markAllNotificationsRead();
 		document.querySelector("#notifications-dropdown").hidden = true;
@@ -1553,7 +1554,7 @@
 		await markAllNotificationsRead();
 		await refreshNotifications();
 	});
-	document.querySelector("#notifications-dropdown").addEventListener("click", async (event) => {
+	async function handleNotificationListClick(event) {
 		const deleteButton = event.target.closest("[data-delete-notification]");
 		if (deleteButton) {
 			event.stopPropagation();
@@ -1566,7 +1567,9 @@
 			event.stopPropagation();
 			await markNotificationRead(item.dataset.notificationId);
 		}
-	});
+	}
+	document.querySelector("#notifications-dropdown").addEventListener("click", handleNotificationListClick);
+	document.querySelector("#notifications-page-list").addEventListener("click", handleNotificationListClick);
 	document.querySelectorAll("[data-filter]").forEach((button) => button.addEventListener("click", () => {
 		currentView = "home";
 		currentFeed = button.dataset.filter;
